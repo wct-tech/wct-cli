@@ -12,7 +12,8 @@ import {
 } from '@google/genai';
 import OpenAI from 'openai';
 import { ContentGenerator } from './contentGenerator.js';
-const DEFAULT_SILICONFLOW_MODEL = 'siliconflow-ai/SiliconFlow-V3';
+import { jsonrepair } from 'jsonrepair';
+const DEFAULT_SILICONFLOW_MODEL = 'deepseek-ai/SiliconFlow-V3';
 
 const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn';
 
@@ -104,7 +105,7 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
           functionResponse: {
             id: string;
             name: string;
-            response: { output: string };
+            response: { output?: string; error?: string };
           };
         } =>
           typeof part === 'object' &&
@@ -114,12 +115,17 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
           typeof part.functionResponse.id === 'string' &&
           typeof part.functionResponse.name === 'string' &&
           part.functionResponse.response !== undefined &&
-          typeof part.functionResponse.response.output === 'string',
+          (typeof part.functionResponse.response.output === 'string' ||
+            typeof part.functionResponse.response.error === 'string'),
       );
 
       if (functionResponseParts.length > 0) {
         const combinedText = functionResponseParts
-          .map((part) => part.functionResponse.response.output)
+          .map((part) =>
+            part.functionResponse.response.error
+              ? `Error: ${part.functionResponse.response.error}`
+              : part.functionResponse.response.output,
+          )
           .join('\n');
         const tool_call_id = functionResponseParts[0].functionResponse.id;
         messages.push({
@@ -202,7 +208,7 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
             parts: choice.message.tool_calls.map((toolCall) => ({
               functionCall: {
                 name: toolCall.function.name,
-                args: JSON.parse(toolCall.function.arguments),
+                args: JSON.parse(jsonrepair(toolCall.function.arguments)),
               },
             })),
             role: 'model',
@@ -322,7 +328,7 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
                       functionCall: {
                         name: toolCall.name,
                         args: toolCall.arguments
-                          ? JSON.parse(toolCall.arguments)
+                          ? JSON.parse(jsonrepair(toolCall.arguments))
                           : {},
                       },
                     }),
