@@ -9,13 +9,13 @@ import type { Mocked } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
-import { FileDiscoveryService } from '@siliconflow/si-cli-core';
+import { FileDiscoveryService } from '@gen-cli/gen-cli-core';
 import { glob } from 'glob';
 
 // Mock dependencies
 vi.mock('fs/promises');
-vi.mock('@siliconflow/si-cli-core', async () => {
-  const actual = await vi.importActual('@siliconflow/si-cli-core');
+vi.mock('@gen-cli/gen-cli-core', async () => {
+  const actual = await vi.importActual('@gen-cli/gen-cli-core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn(),

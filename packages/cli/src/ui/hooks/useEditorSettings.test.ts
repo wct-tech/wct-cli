@@ -22,10 +22,10 @@ import {
   type EditorType,
   checkHasEditorType,
   allowEditorTypeInSandbox,
-} from '@siliconflow/si-cli-core';
+} from '@gen-cli/gen-cli-core';
 
-vi.mock('@siliconflow/si-cli-core', async () => {
-  const actual = await vi.importActual('@siliconflow/si-cli-core');
+vi.mock('@gen-cli/gen-cli-core', async () => {
+  const actual = await vi.importActual('@gen-cli/gen-cli-core');
   return {
     ...actual,
     checkHasEditorType: vi.fn(() => true),
