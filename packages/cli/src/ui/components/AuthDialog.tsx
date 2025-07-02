@@ -92,16 +92,12 @@ export function AuthDialog({
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.AccentBlue}>
-          {
-            'https://docs.siliconflow.cn/cn/legals/terms-of-service'
-          }
+          https://docs.siliconflow.cn/cn/legals/terms-of-service
         </Text>
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.AccentBlue}>
-          {
-            'https://docs.siliconflow.cn/cn/legals/privacy-policy'
-          }
+          https://docs.siliconflow.cn/cn/legals/privacy-policy
         </Text>
       </Box>
     </Box>
