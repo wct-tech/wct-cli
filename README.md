@@ -10,6 +10,7 @@ forked from [Google Gemini CLI](https://github.com/google-gemini/gemini-cli)
    ```bash
    export SILICONFLOW_API_KEY="YOUR_API_KEY"
    ```
+
 3. **Run the CLI:** Execute the following command in your terminal:
 
    ```bash
@@ -102,6 +103,10 @@ Use MCP servers to integrate your local system tools with your enterprise collab
 ```text
 > Organise my PDF invoices by month of expenditure.
 ```
+
+### Uninstall
+
+Head over to the [Uninstall](docs/Uninstall.md) guide for uninstallation instructions.
 
 ## Terms of Service and Privacy Notice
 
