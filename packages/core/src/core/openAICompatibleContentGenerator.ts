@@ -13,21 +13,7 @@ import {
 import OpenAI from 'openai';
 import { ContentGenerator } from './contentGenerator.js';
 import { jsonrepair } from 'jsonrepair';
-const DEFAULT_SILICONFLOW_MODEL = 'deepseek-ai/SiliconFlow-V3';
-
-const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn';
-
-type SiliconFlowMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-
-interface SiliconFlowRequest {
-  model: string;
-  messages: SiliconFlowMessage[];
-  stream?: boolean;
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  tools?: OpenAI.Chat.Completions.ChatCompletionTool[];
-}
+const OPENAI_BASE_URL = 'https://api.siliconflow.cn';
 
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -64,20 +50,20 @@ function toContent(content: Content | PartUnion): Content {
   };
 }
 
-export class SiliconFlowContentGenerator implements ContentGenerator {
+export class OpenAICompatibleContentGenerator implements ContentGenerator {
   private openai: OpenAI;
 
-  constructor(apiKey: string, baseUrl: string = SILICONFLOW_BASE_URL) {
+  constructor(apiKey: string, baseUrl: string = OPENAI_BASE_URL) {
     this.openai = new OpenAI({
       apiKey,
       baseURL: baseUrl,
     });
   }
 
-  private convertToSiliconFlowMessages(
+  private convertToOpenAIMessages(
     contents: Content[],
-  ): SiliconFlowMessage[] {
-    const messages: SiliconFlowMessage[] = [];
+  ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
     for (const content of contents) {
       const role =
         content.role === 'model'
@@ -231,7 +217,7 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToSiliconFlowMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray);
     const tools: OpenAI.Chat.Completions.ChatCompletionTool[] | undefined =
       request.config?.tools?.flatMap((tool) => {
         if ('functionDeclarations' in tool) {
@@ -255,20 +241,16 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
         return [];
       });
 
-    const siliconFlowRequest: SiliconFlowRequest = {
-      model: request.model ?? DEFAULT_SILICONFLOW_MODEL,
+    const stream = await this.openai.chat.completions.create({
+      model: request.model,
       messages,
       stream: true,
       temperature: request.config?.temperature,
       max_tokens: request.config?.maxOutputTokens,
       top_p: request.config?.topP,
       tools,
-    };
-
-    const stream = await this.openai.chat.completions.create({
-      ...siliconFlowRequest,
-      stream: true,
     });
+
     const toolCallMap = new Map<
       number,
       {
@@ -368,26 +350,17 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToSiliconFlowMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray);
 
     const tools = undefined;
 
-    const siliconFlowRequest: SiliconFlowRequest = {
-      model: request.model || DEFAULT_SILICONFLOW_MODEL,
+    const completion = await this.openai.chat.completions.create({
+      model: request.model,
       messages,
       stream: false,
       temperature: request.config?.temperature,
       max_tokens: request.config?.maxOutputTokens,
       top_p: request.config?.topP,
-      tools,
-    };
-
-    const completion = await this.openai.chat.completions.create({
-      model: siliconFlowRequest.model,
-      messages: siliconFlowRequest.messages,
-      temperature: siliconFlowRequest.temperature,
-      max_tokens: siliconFlowRequest.max_tokens,
-      top_p: siliconFlowRequest.top_p,
       tools,
     });
 
@@ -400,7 +373,7 @@ export class SiliconFlowContentGenerator implements ContentGenerator {
     const contentsArray = toContents(request.contents);
 
     // We'll estimate based on the text length (rough approximation: 4 chars per token)
-    const messages = this.convertToSiliconFlowMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray);
     const totalText = messages.map((m) => m.content).join(' ');
     const estimatedTokens = Math.ceil(totalText.length / 4);
 
