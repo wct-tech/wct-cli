@@ -24,6 +24,18 @@ forked from [Google Gemini CLI](https://github.com/google-gemini/gemini-cli)
    gen
    ```
 
+## Examples
+
+Once the CLI is running, you can start interacting with Gemini from your shell.
+
+You can start a project from a new directory:
+
+```sh
+cd new-project/
+gen
+> Write me a TODO app in tailwindcss and react that can be used to track my daily tasks
+```
+
 # Gemini CLI
 
 [![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
