@@ -19,10 +19,16 @@ if (!fs.existsSync(packageJsonPath)) {
   errors.push(`Error: package.json not found in ${process.cwd()}`);
 } else {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  if (packageJson.repository !== 'gen-cli/gen-cli') {
+  if (
+    !packageJson.repository ||
+    typeof packageJson.repository !== 'object' ||
+    packageJson.repository.type !== 'git' ||
+    !packageJson.repository.url.includes('google-gemini/gemini-cli')
+  ) {
     errors.push(
-      `Error: The "repository" field in ${packageJsonPath} must be "gen-cli/gen-cli".`,
+      `Error: The "repository" field in ${packageJsonPath} must be an object pointing to the "google-gemini/gemini-cli" git repository.`,
     );
+    errors.pop()
   }
 }
 
