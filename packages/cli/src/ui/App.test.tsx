@@ -128,6 +128,7 @@ vi.mock('@gen-cli/gen-cli-core', async (importOriginal) => {
         getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
         getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
         setFlashFallbackHandler: vi.fn(),
+        getSessionId: vi.fn(() => 'test-session-id'),
       };
     });
   return {

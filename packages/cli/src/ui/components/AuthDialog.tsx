@@ -26,9 +26,26 @@ export function AuthDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage || null,
   );
-  const items = [
-    { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
+  let items = [
+    {
+      label: 'Login with Google',
+      value: AuthType.LOGIN_WITH_GOOGLE,
+    },
+    ...(process.env.CLOUD_SHELL === 'true'
+      ? [
+          {
+            label: 'Use Cloud Shell user credentials',
+            value: AuthType.CLOUD_SHELL,
+          },
+        ]
+      : []),
+    {
+      label: 'Use Gemini API Key',
+      value: AuthType.USE_GEMINI,
+    },
+    { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
   ];
+  items = [ { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW }]
 
   let initialAuthIndex = items.findIndex(
     (item) => item.value === settings.merged.selectedAuthType,
@@ -50,6 +67,11 @@ export function AuthDialog({
 
   useInput((_input, key) => {
     if (key.escape) {
+      // Prevent exit if there is an error message.
+      // This means they user is not authenticated yet.
+      if (errorMessage) {
+        return;
+      }
       if (settings.merged.selectedAuthType === undefined) {
         // Prevent exiting if no auth method is set
         setErrorMessage(
