@@ -84,6 +84,7 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
 }
 
 export async function main() {
+  console.log('main process init');
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
 
