@@ -38,7 +38,7 @@ export interface ContentGenerator {
 export enum AuthType {
   LOGIN_WITH_GOOGLE = 'oauth-personal',
   USE_GEMINI = 'gemini-api-key',
-  USE_SILICONFLOW = 'siliconflow-api-key',
+  USE_IWHALECLOUD = 'iwhalecloud-api-key',
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
 }
@@ -114,11 +114,11 @@ export async function createContentGenerator(
       'User-Agent': `GeminiCLI/${version} (${process.platform}; ${process.arch})`,
     },
   };
-  if (config.authType === AuthType.USE_SILICONFLOW) {
-    const apiKey = process.env.SILICONFLOW_API_KEY;
+  if (config.authType === AuthType.USE_IWHALECLOUD) {
+    const apiKey = process.env.WCT_API_KEY || "ailab_yyrO5kPGIu11Zn/Kdmn2Yg99lYxfRCU8mgRx8iOb5RWM0KnxhO3lEjQQddNruTKlPtj3kxo7UkK0JW9/C4KV6FXc/Ufx/iSxyNDIwhXgOpl57A1pld4hxUk=";
     if (!apiKey) {
       throw new Error(
-        'SILICONFLOW_API_KEY environment variable is not set. Please set it to use SiliconFlow.',
+        'WCT_API_KEY environment variable is not set. Please set it to use ailab_iWhaleCloud token.',
       );
     }
     return new OpenAICompatibleContentGenerator(apiKey);

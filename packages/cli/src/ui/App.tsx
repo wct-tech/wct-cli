@@ -55,7 +55,7 @@ import {
   isEditorAvailable,
   EditorType,
   baseURL,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';

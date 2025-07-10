@@ -24,7 +24,7 @@ import {
   ToolCall, // Import from core
   Status as ToolCallStatusType,
   ApprovalMode, // Import from core
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 import {
   HistoryItemWithoutId,
   ToolCallStatus,
@@ -32,8 +32,8 @@ import {
 } from '../types.js';
 
 // Mocks
-vi.mock('@gen-cli/gen-cli-core', async () => {
-  const actual = await vi.importActual('@gen-cli/gen-cli-core');
+vi.mock('@wct-cli/wct-cli-core', async () => {
+  const actual = await vi.importActual('@wct-cli/wct-cli-core');
   return {
     ...actual,
     ToolRegistry: vi.fn(),

@@ -11,7 +11,7 @@ import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
 import { glob } from 'glob';
 import { CommandContext, SlashCommand } from '../commands/types.js';
-import { Config, FileDiscoveryService } from '@gen-cli/gen-cli-core';
+import { Config, FileDiscoveryService } from '@wct-cli/wct-cli-core';
 
 interface MockConfig {
   getFileFilteringRespectGitIgnore: () => boolean;
@@ -21,8 +21,8 @@ interface MockConfig {
 
 // Mock dependencies
 vi.mock('fs/promises');
-vi.mock('@gen-cli/gen-cli-core', async () => {
-  const actual = await vi.importActual('@gen-cli/gen-cli-core');
+vi.mock('@wct-cli/wct-cli-core', async () => {
+  const actual = await vi.importActual('@wct-cli/wct-cli-core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn(),

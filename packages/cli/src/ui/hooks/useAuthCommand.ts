@@ -11,7 +11,7 @@ import {
   Config,
   clearCachedCredentialFile,
   getErrorMessage,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 export const useAuthCommand = (
   settings: LoadedSettings,

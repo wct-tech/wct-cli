@@ -35,7 +35,7 @@
         "gen": "dist/index.js",
       },
       "dependencies": {
-        "@gen-cli/gen-cli-core": "0.1.9",
+        "@wct-cli/wct-cli-core": "0.1.9",
         "@types/update-notifier": "^6.0.8",
         "command-exists": "^1.2.9",
         "diff": "^7.0.0",
@@ -83,7 +83,7 @@
       },
     },
     "packages/core": {
-      "name": "@gen-cli/gen-cli-core",
+      "name": "@wct-cli/wct-cli-core",
       "version": "0.1.9",
       "dependencies": {
         "@google/genai": "^1.4.0",
@@ -225,7 +225,7 @@
 
     "@gen-cli/gen-cli": ["@gen-cli/gen-cli@workspace:packages/cli"],
 
-    "@gen-cli/gen-cli-core": ["@gen-cli/gen-cli-core@workspace:packages/core"],
+    "@wct-cli/wct-cli-core": ["@wct-cli/wct-cli-core@workspace:packages/core"],
 
     "@google/genai": ["@google/genai@1.4.0", "", { "dependencies": { "google-auth-library": "^9.14.2", "ws": "^8.18.0", "zod": "^3.22.4", "zod-to-json-schema": "^3.22.4" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.11.0" } }, "sha512-u9LQZbWBhqaaLelCcYsxMNDTeW12jzNwGkI/eqUeMG/iB1gJBu56LCxrFJ/hkHeZQgPg+j1pckBLZS/dnOh+Bw=="],
 

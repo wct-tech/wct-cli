@@ -67,6 +67,8 @@ service:
       processors: [batch]
       exporters: [debug]
 `;
+// 暂时不触发 telemetry
+exports.shouldSendTelemetry = false;
 
 async function main() {
   // 1. Ensure binaries are available, downloading if necessary.

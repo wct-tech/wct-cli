@@ -1,15 +1,15 @@
 {
-  "name": "@gen-cli/gen-cli",
-  "version": "0.1.9",
-  "description": "Gen CLI",
+  "name": "@wct-cli/wct-cli",
+  "version": "0.0.6",
+  "description": "wct CLI",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gen-cli/gen-cli.git"
+    "url": "git+https://github.com/wct-cli/wct-cli.git"
   },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gen": "dist/index.js"
+    "wct-cli": "dist/index.js"
   },
   "scripts": {
     "build": "node ../../scripts/build_package.js",
@@ -28,8 +28,9 @@
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.9"
   },
   "dependencies": {
-    "@gen-cli/gen-cli": "file:../core",
     "@types/update-notifier": "^6.0.8",
+    "@wct-cli/wct-cli": "file:",
+    "@wct-cli/wct-cli-core": "^0.0.6",
     "command-exists": "^1.2.9",
     "diff": "^7.0.0",
     "dotenv": "^16.6.1",

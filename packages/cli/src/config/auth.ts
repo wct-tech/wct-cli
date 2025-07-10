@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType } from '@gen-cli/gen-cli-core';
+import { AuthType } from '@wct-cli/wct-cli-core';
 import { loadEnvironment } from './settings.js';
 
 export const validateAuthMethod = (authMethod: string): string | null => {
@@ -16,9 +16,9 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
-  if (authMethod === AuthType.USE_SILICONFLOW) {
-    if (!process.env.SILICONFLOW_API_KEY) {
-      return 'SILICONFLOW_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+  if (authMethod === AuthType.USE_IWHALECLOUD) {
+    if (!process.env.WCT_API_KEY) {
+      return 'WCT_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     return null;
   }

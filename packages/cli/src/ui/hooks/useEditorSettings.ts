@@ -11,7 +11,7 @@ import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
   EditorType,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 interface UseEditorSettingsReturn {
   isEditorDialogOpen: boolean;

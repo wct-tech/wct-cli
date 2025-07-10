@@ -7,14 +7,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runNonInteractive } from './nonInteractiveCli.js';
-import { Config, GeminiClient, ToolRegistry } from '@gen-cli/gen-cli-core';
+import { Config, GeminiClient, ToolRegistry } from '@wct-cli/wct-cli-core';
 import { GenerateContentResponse, Part, FunctionCall } from '@google/genai';
 
 // Mock dependencies
-vi.mock('@gen-cli/gen-cli-core', async () => {
+vi.mock('@wct-cli/wct-cli-core', async () => {
   const actualCore = await vi.importActual<
-    typeof import('@gen-cli/gen-cli-core')
-  >('@gen-cli/gen-cli-core');
+    typeof import('@wct-cli/wct-cli-core')
+  >('@wct-cli/wct-cli-core');
   return {
     ...actualCore,
     GeminiClient: vi.fn(),
@@ -109,7 +109,7 @@ describe('runNonInteractive', () => {
     };
 
     const { executeToolCall: mockCoreExecuteToolCall } = await import(
-      '@gen-cli/gen-cli-core'
+      '@wct-cli/wct-cli-core'
     );
     vi.mocked(mockCoreExecuteToolCall).mockResolvedValue({
       callId: 'fc1',
@@ -162,7 +162,7 @@ describe('runNonInteractive', () => {
     };
 
     const { executeToolCall: mockCoreExecuteToolCall } = await import(
-      '@gen-cli/gen-cli-core'
+      '@wct-cli/wct-cli-core'
     );
     vi.mocked(mockCoreExecuteToolCall).mockResolvedValue({
       callId: 'fcError',
@@ -234,7 +234,7 @@ describe('runNonInteractive', () => {
     };
 
     const { executeToolCall: mockCoreExecuteToolCall } = await import(
-      '@gen-cli/gen-cli-core'
+      '@wct-cli/wct-cli-core'
     );
     vi.mocked(mockCoreExecuteToolCall).mockResolvedValue({
       callId: 'fcNotFound',

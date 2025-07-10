@@ -17,7 +17,7 @@ import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   FileDiscoveryService,
   TelemetryTarget,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { Settings } from './settings.js';
 
 import { Extension } from './extension.js';

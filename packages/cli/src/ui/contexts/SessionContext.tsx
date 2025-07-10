@@ -16,7 +16,7 @@ import {
   uiTelemetryService,
   SessionMetrics,
   ModelMetrics,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 // --- Interface Definitions ---
 

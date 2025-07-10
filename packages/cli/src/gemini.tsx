@@ -35,7 +35,7 @@ import {
   sessionId,
   logUserPrompt,
   AuthType,
-} from '@gen-cli/gen-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 
@@ -84,7 +84,6 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
 }
 
 export async function main() {
-  console.log('main process init');
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
 
@@ -288,7 +287,7 @@ async function validateNonInterActiveAuth(
     process.exit(1);
   }
 
-  selectedAuthType = selectedAuthType || AuthType.USE_SILICONFLOW;
+  selectedAuthType = selectedAuthType || AuthType.USE_IWHALECLOUD;
   const err = validateAuthMethod(selectedAuthType);
   if (err != null) {
     console.error(err);

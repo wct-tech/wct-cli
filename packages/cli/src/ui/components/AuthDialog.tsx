@@ -9,7 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@gen-cli/gen-cli-core';
+import { AuthType } from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 
 interface AuthDialogProps {
@@ -45,7 +45,7 @@ export function AuthDialog({
     },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
   ];
-  items = [ { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW }]
+  items = [ { label: 'iWhaleCloud API Key', value: AuthType.USE_IWHALECLOUD }]
 
   let initialAuthIndex = items.findIndex(
     (item) => item.value === settings.merged.selectedAuthType,
@@ -106,6 +106,7 @@ export function AuthDialog({
       <Box marginTop={1}>
         <Text color={Colors.Gray}>(Use Enter to select)</Text>
       </Box>
+      {/* 
       <Box marginTop={1}>
         <Text>Terms of Services and Privacy Notice</Text>
       </Box>
@@ -119,6 +120,7 @@ export function AuthDialog({
           https://docs.siliconflow.cn/cn/legals/privacy-policy
         </Text>
       </Box>
+      */}
     </Box>
   );
 }

@@ -17,7 +17,8 @@ import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
 export function baseURL(): string {
-  return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+  // return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+  return 'https://lab.iwhalecloud.com/gpt-proxy';
 }
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -117,12 +118,12 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               : part.functionResponse.response.output,
           )
           .join('\n');
-        const tool_call_id = functionResponseParts[0].functionResponse.id;
         messages.push({
-          tool_call_id,
+          tool_call_id: functionResponseParts[0].functionResponse.id,
           role: 'tool',
-          content: combinedText,
-        });
+          name: functionResponseParts[0]?.functionResponse.name || 'unknown_function',
+          content: combinedText
+        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
       }
       const functionCallParts = parts.filter(
         (
