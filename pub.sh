@@ -1,7 +1,9 @@
-set -ex
+set -x
 npm run clean
-npm install
-npm run prepare:packages
-npm run prerelease:dev
-npm run build
-npm publish --workspaces --tag latest --access public
+set -eu
+npm ci
+npm run release:version $1
+npm run build:packages
+npm run prepare:package
+npm publish --workspace=@gen-cli/gen-cli-core --tag latest --access public
+npm publish --workspace=@gen-cli/gen-cli --tag latest --access public
