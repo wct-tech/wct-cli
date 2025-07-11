@@ -198,9 +198,9 @@ export class Config {
       enabled: params.telemetry?.enabled ?? false,
       target: params.telemetry?.target ?? DEFAULT_TELEMETRY_TARGET,
       otlpEndpoint: params.telemetry?.otlpEndpoint ?? DEFAULT_OTLP_ENDPOINT,
-      logPrompts: params.telemetry?.logPrompts ?? true,
+      logPrompts: params.telemetry?.logPrompts ?? false,
     };
-    this.usageStatisticsEnabled = params.usageStatisticsEnabled ?? true;
+    this.usageStatisticsEnabled = params.usageStatisticsEnabled ?? false;
 
     this.fileFiltering = {
       respectGitIgnore: params.fileFiltering?.respectGitIgnore ?? true,

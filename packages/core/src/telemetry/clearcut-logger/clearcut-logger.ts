@@ -47,12 +47,13 @@ export class ClearcutLogger {
   }
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config === undefined || !config?.getUsageStatisticsEnabled())
-      return undefined;
-    if (!ClearcutLogger.instance) {
-      ClearcutLogger.instance = new ClearcutLogger(config);
-    }
-    return ClearcutLogger.instance;
+    // if (config === undefined || !config?.getUsageStatisticsEnabled())
+    //   return undefined;
+    // if (!ClearcutLogger.instance) {
+    //   ClearcutLogger.instance = new ClearcutLogger(config);
+    // }
+    // return ClearcutLogger.instance;
+    return undefined;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clearcut expects this format.
