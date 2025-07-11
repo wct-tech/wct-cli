@@ -21,6 +21,7 @@ import { GenerateContentConfig, PartListUnion, PartUnion } from '@google/genai';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
 // import { logUserPrompt } from '@google/gemini-cli-core/src/telemetry/loggers.js';
 // import { UserPromptEvent } from '@google/gemini-cli-core/src/telemetry/types.js';
 
@@ -598,9 +599,16 @@ app.delete('/v1/chat/sessions/:sessionId', (req: Request, res: Response) => {
 app.get('/v1/chat/sessions', (req: Request, res: Response) => {
   
   const sessions = Array.from(chatSessions.keys());
-  const session = chatSessions.get('5')?.getHistory()
-  res.json({ sessions, session });
+  res.json({ sessions });
 });
+
+app.get('/v1/chatPage', (_, res: Response)=>{
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const htmlpath = path.join(__dirname, 'client-test.html');
+  console.log('htmlpath:', htmlpath);
+  res.sendFile(htmlpath);
+})
 
 const port = Number(process.env.PORT) || 3000;
 app.listen(port, "0.0.0.0", () => {

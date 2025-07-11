@@ -599,8 +599,7 @@ app.delete('/v1/chat/sessions/:sessionId', (req: Request, res: Response) => {
 app.get('/v1/chat/sessions', (req: Request, res: Response) => {
   
   const sessions = Array.from(chatSessions.keys());
-  const session = chatSessions.get('5')?.getHistory()
-  res.json({ sessions, session });
+  res.json({ sessions });
 });
 
 const port = Number(process.env.PORT) || 3000;
