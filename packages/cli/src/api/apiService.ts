@@ -25,6 +25,13 @@ import { fileURLToPath } from 'url';
 // import { logUserPrompt } from '@google/gemini-cli-core/src/telemetry/loggers.js';
 // import { UserPromptEvent } from '@google/gemini-cli-core/src/telemetry/types.js';
 
+/** 
+ * NECESSARY!!!
+ * stdin env variable, make shell command like tools pipe or stream.
+ * so the process would continue, prevent it stuck waiting for input
+ * */
+process.stdin.isTTY = true; 
+
 const app = express();
 app.use(express.json());
 
@@ -605,13 +612,31 @@ app.get('/v1/chat/sessions', (req: Request, res: Response) => {
 app.get('/v1/chatPage', (_, res: Response)=>{
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
+  
   const htmlpath = path.join(__dirname, 'client-test.html');
-  console.log('htmlpath:', htmlpath);
   res.sendFile(htmlpath);
 })
 
-const port = Number(process.env.PORT) || 3000;
-app.listen(port, "0.0.0.0", () => {
-  console.log(`OpenAI-compatible API service listening on port ${port}`);
-  console.log(`Tool registry initialized with ${toolRegistryPromise.then(registry => registry.getAllTools().length)} tools`);
-}); 
+const DEFAULT_PORT = Number(process.env.PORT) || 3000;
+const MAX_PORT_TRIES = 10;
+
+function startServer(port: number, triesLeft: number) {
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`OpenAI-compatible API service listening on port ${port}`);
+    toolRegistryPromise.then(registry => {
+      console.log(`Tool registry initialized with ${registry.getAllTools().length} tools`);
+    });
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE' && triesLeft > 0) {
+      console.warn(`Port ${port} in use, trying port ${port + 1}...`);
+      startServer(port + 1, triesLeft - 1);
+    } else {
+      console.error(`Failed to start server: ${err.message}`);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(DEFAULT_PORT, MAX_PORT_TRIES); 
