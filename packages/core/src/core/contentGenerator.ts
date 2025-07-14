@@ -115,7 +115,7 @@ export async function createContentGenerator(
     },
   };
   if (config.authType === AuthType.USE_IWHALECLOUD) {
-    const apiKey = process.env.WCT_API_KEY || "ailab_yyrO5kPGIu11Zn/Kdmn2Yg99lYxfRCU8mgRx8iOb5RWM0KnxhO3lEjQQddNruTKlPtj3kxo7UkK0JW9/C4KV6FXc/Ufx/iSxyNDIwhXgOpl57A1pld4hxUk=";
+    const apiKey = process.env.WCT_API_KEY;
     if (!apiKey) {
       throw new Error(
         'WCT_API_KEY environment variable is not set. Please set it to use ailab_iWhaleCloud token.',
