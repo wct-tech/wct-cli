@@ -18,6 +18,7 @@ import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { Config } from '../config/config.js';
 import { getEffectiveModel } from './modelCheck.js';
 import { OpenAICompatibleContentGenerator } from './openAICompatibleContentGenerator.js';
+import { UserTierId } from '../code_assist/types.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -34,6 +35,8 @@ export interface ContentGenerator {
   countTokens(request: CountTokensParameters): Promise<CountTokensResponse>;
 
   embedContent(request: EmbedContentParameters): Promise<EmbedContentResponse>;
+
+  getTier?(): Promise<UserTierId | undefined>;
 }
 
 export enum AuthType {
