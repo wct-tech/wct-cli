@@ -21,6 +21,9 @@ interface AuthDialogProps {
 function parseDefaultAuthType(
   defaultAuthType: string | undefined,
 ): AuthType | null {
+  if (!process.env.CI) {
+    return AuthType.USE_SILICONFLOW;
+  }
   if (
     defaultAuthType &&
     Object.values(AuthType).includes(defaultAuthType as AuthType)
@@ -59,26 +62,30 @@ export function AuthDialog({
     }
     return null;
   });
-  let items = [
-    {
-      label: 'Login with Google',
-      value: AuthType.LOGIN_WITH_GOOGLE,
-    },
-    ...(process.env.CLOUD_SHELL === 'true'
-      ? [
-          {
-            label: 'Use Cloud Shell user credentials',
-            value: AuthType.CLOUD_SHELL,
-          },
-        ]
-      : []),
-    {
-      label: 'Use Gemini API Key',
-      value: AuthType.USE_GEMINI,
-    },
-    { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+  const SiliconFlowItems = [
+    { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
   ];
-  items = [{ label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW }];
+  const items = !process.env.CI
+    ? SiliconFlowItems
+    : [
+        {
+          label: 'Login with Google',
+          value: AuthType.LOGIN_WITH_GOOGLE,
+        },
+        ...(process.env.CLOUD_SHELL === 'true'
+          ? [
+              {
+                label: 'Use Cloud Shell user credentials',
+                value: AuthType.CLOUD_SHELL,
+              },
+            ]
+          : []),
+        {
+          label: 'Use Gemini API Key',
+          value: AuthType.USE_GEMINI,
+        },
+        { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+      ];
 
   const initialAuthIndex = items.findIndex((item) => {
     if (settings.merged.selectedAuthType) {
