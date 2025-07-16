@@ -1,36 +1,49 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/array-type */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// 设置环境变量，禁用遥测
+process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
 
 import express, { Request, Response } from 'express';
-import { 
-  GeminiChat, 
-  Config, 
-  ContentGenerator, 
-  createContentGenerator, 
-  AuthType, 
-  executeToolCall,
+import {
+  GeminiChat,
+  Config,
+  AuthType,
+  ContentGenerator,
+  createContentGenerator,
+  createContentGeneratorConfig,
+  ServerGeminiStreamEvent,
+  ToolCallRequestInfo,
+  ThoughtSummary,
   GeminiClient,
   CoreToolScheduler,
   getErrorMessage,
   UnauthorizedError,
-  ToolRegistry
+  CompletedToolCall,
 } from '@wct-cli/wct-cli-core';
-import { GenerateContentConfig, PartListUnion, PartUnion } from '@google/genai';
+import { GenerateContentConfig, PartListUnion } from '@google/genai';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import cors from 'cors';
-import { fileURLToPath } from 'url';
+// import { GeminiClient } from '@google/gemini-cli-core/src/core/client';
+// import { CoreToolScheduler } from '@google/gemini-cli-core/src/core/coreToolScheduler';
+// import {
+//   getErrorMessage,
+//   UnauthorizedError,
+// } from '@google/gemini-cli-core/src/utils/errors';
 // import { logUserPrompt } from '@google/gemini-cli-core/src/telemetry/loggers.js';
 // import { UserPromptEvent } from '@google/gemini-cli-core/src/telemetry/types.js';
 
-/** 
- * NECESSARY!!!
- * stdin env variable, make shell command like tools pipe or stream.
- * so the process would continue, prevent it stuck waiting for input
- * */
-process.stdin.isTTY = true; 
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -40,55 +53,133 @@ app.use(express.json());
 app.use(cors({
   origin: '*' // Explicitly allow 'null' origin
 }));
-// Minimal config for demonstration; in production, load from env or config file
-const config = new Config({
+
+// 默认配置
+const DEFAULT_CONFIG = {
   sessionId: 'api-service',
   targetDir: process.cwd(),
   debugMode: false,
-  model: 'gemini-2.5-pro',
+  model: 'gemini-2.5-pro', // 默认模型
   cwd: process.cwd(),
-});
-await config.initialize();
+};
 
-// Initialize authentication
-//await config.refreshAuth(AuthType.USE_GEMINI);
-await config.refreshAuth(AuthType.USE_IWHALECLOUD);
+// 创建配置对象，支持自定义项目路径
+function createConfig(projectPath?: string, model?: string): Config {
+  let targetDir = projectPath || process.cwd();
 
-
-// Initialize tool registry
-const toolRegistryPromise = config.getToolRegistry();// fix 1 createToolResgistry
-
-let contentGeneratorPromise: Promise<ContentGenerator> | null = null;
-function getContentGenerator(): Promise<ContentGenerator> {
-  if (!contentGeneratorPromise) {
-    contentGeneratorPromise = createContentGenerator(config.getContentGeneratorConfig());
+  // 修复Windows路径问题，如果提供了项目路径
+  if (projectPath && path.isAbsolute(projectPath)) {
+    targetDir = projectPath;
+  } else if (projectPath) {
+    targetDir = path.resolve(process.cwd(), projectPath);
   }
-  return contentGeneratorPromise;
+
+  console.log(`创建配置对象，项目路径: ${targetDir}, 模型: ${model}`);
+  return new Config({
+    ...DEFAULT_CONFIG,
+    model: model || DEFAULT_CONFIG.model,
+    targetDir,
+    cwd: targetDir,
+  });
 }
 
-// Store chat sessions for multi-round conversations
+// 添加工具调用超时处理函数
+function executeToolWithTimeout(
+  scheduler: CoreToolScheduler, 
+  toolCallRequests: ToolCallRequestInfo[], 
+  abortSignal: AbortSignal,
+  timeoutMs: number = 60000
+): Promise<{
+  status: string;
+  request: { isClientInitiated: boolean };
+  response?: { responseParts: PartListUnion };
+}[]> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      console.warn(`工具执行超时，已运行 ${timeoutMs}ms`);
+      reject(new Error(`工具执行超时，已运行 ${timeoutMs}ms`));
+    }, timeoutMs);
+    
+    // 启动工具执行
+    scheduler.schedule(toolCallRequests, abortSignal);
+    
+    // 替换完成回调
+    const originalOnComplete = scheduler['onAllToolCallsComplete'];
+    scheduler['onAllToolCallsComplete'] = (
+      tools: CompletedToolCall[], // type定义
+    ) => {
+      clearTimeout(timeoutId);
+      console.log(`所有工具执行完成，共 ${tools.length} 个`);
+      originalOnComplete?.(tools);
+      resolve(tools);
+    };
+  });
+}
+
+// 初始化默认配置
+const globalConfig = createConfig();
+await globalConfig.initialize();
+
+// 初始化工具注册表
+const toolRegistryPromise = globalConfig.getToolRegistry();
+
+// 设置环境变量，启用OpenAI模式
+process.env.USE_OPENAI = 'true';
+process.env.OPENAI_API_URL = process.env.OPENAI_API_URL || process.env.PROXY_API_URL || 'https://lab.iwhalecloud.com/gpt-proxy/v1';
+process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.THIRD_PARTY_API_KEY;
+
+// 如果使用OpenAI，默认禁用遥测
+if (process.env.USE_OPENAI === 'true') {
+  process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+}
+
+// 初始化认证
+await globalConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
+
+const contentGeneratorCache = new Map<string, Promise<ContentGenerator>>();
+async function getContentGenerator(config: Config, apiKey?: string): Promise<ContentGenerator> {
+  const authType = apiKey ? AuthType.USE_IWHALECLOUD : AuthType.USE_IWHALECLOUD;
+  const model = config.getModel();
+  
+  const cgConfig = await createContentGeneratorConfig(model, authType);
+  const key = JSON.stringify(cgConfig);
+  
+  if (!contentGeneratorCache.has(key)) {
+    contentGeneratorCache.set(key, createContentGenerator(cgConfig));
+  }
+  return contentGeneratorCache.get(key)!;
+}
+
+// 存储聊天会话
 const chatSessions = new Map<string, GeminiChat>();
 
-// Store Gemini clients for each session
+// 存储Gemini客户端
 const geminiClients = new Map<string, GeminiClient>();
 
-// Store tool schedulers for each session
+// 存储工具调度器
 const toolSchedulers = new Map<string, CoreToolScheduler>();
 
-// Helper function to get or create Gemini client for a session
-async function getGeminiClient(sessionId: string): Promise<GeminiClient> {
-  let client = geminiClients.get(sessionId);
+// 获取或创建Gemini客户端
+async function getGeminiClient(sessionId: string, config: Config, apiKey?: string): Promise<GeminiClient> {
+  const clientKey = `${sessionId}-${config.getTargetDir()}-${apiKey || ''}`;
+  let client = geminiClients.get(clientKey);
   if (!client) {
     client = new GeminiClient(config);
-    await client.initialize(config.getContentGeneratorConfig());
-    geminiClients.set(sessionId, client);
+    // 使用传入的API Key创建内容生成器配置
+    const contentGeneratorConfig = await createContentGeneratorConfig(
+      config.getModel(), 
+      AuthType.USE_IWHALECLOUD
+    );
+    await client.initialize(contentGeneratorConfig);
+    geminiClients.set(clientKey, client);
   }
   return client;
 }
 
-// Helper function to get or create tool scheduler for a session
-function getToolScheduler(sessionId: string): CoreToolScheduler {
-  let scheduler = toolSchedulers.get(sessionId);
+// 获取或创建工具调度器
+function getToolScheduler(sessionId: string, config: Config): CoreToolScheduler {
+  const schedulerKey = `${sessionId}-${config.getTargetDir()}`;
+  let scheduler = toolSchedulers.get(schedulerKey);
   if (!scheduler) {
     scheduler = new CoreToolScheduler({
       toolRegistry: toolRegistryPromise,
@@ -102,28 +193,27 @@ function getToolScheduler(sessionId: string): CoreToolScheduler {
       getPreferredEditor: () => undefined, // No editor for API
       config,
     });
-    toolSchedulers.set(sessionId, scheduler);
+    toolSchedulers.set(schedulerKey, scheduler);
   }
   return scheduler;
 }
 
-// Local implementation of mergePartListUnions
-function mergePartListUnions(list: any[]): any {
-  if (!Array.isArray(list) || list.length === 0) return [];
-  if (list.length === 1) return list[0];
-  if (list.every(Array.isArray)) return list.flat();
-  if (list.every((x) => typeof x === 'object' && !Array.isArray(x))) return list;
-  return list;
+// 合并部分列表联合
+function mergePartListUnions(list: PartListUnion[]): PartListUnion {
+    if (!Array.isArray(list) || list.length === 0) return [];
+    if (list.length === 1) return list[0];
+    return list.flat();
 }
 
+// 检查是否是@命令
 function isAtCommand(query: string): boolean {
   return typeof query === 'string' && query.trim().startsWith('@');
 }
 
-// Minimal handleAtCommand for @file reading (expects { query: string, config: Config })
-async function handleAtCommand({ query, config }: { query: string, config: any }): Promise<{ processedQuery: any[]; shouldProceed: boolean }> {
+// 处理@命令，用于文件读取
+async function handleAtCommand({ query, config }: { query: string, config: Config }): Promise<{ processedQuery: PartListUnion; shouldProceed: boolean }> {
   const atCommandRegex = /@([^\s\\]+(?:\\\s[^\s\\]+)*)/g;
-  const parts: any[] = [];
+  const parts: {text: string}[] = [];
   let lastIndex = 0;
   let match;
   let shouldProceed = true;
@@ -153,76 +243,16 @@ async function handleAtCommand({ query, config }: { query: string, config: any }
   return { processedQuery: parts.length > 0 ? parts : [{ text: query }], shouldProceed };
 }
 
-function parseAndFormatApiError(errorMessage: any): string {
+// 解析和格式化API错误
+function parseAndFormatApiError(errorMessage: string): string {
   return String(errorMessage);
 }
 
-// Helper function to process tool calls
-async function processToolCalls(
-  chat: GeminiChat,
-  toolCalls: any[],
-  sessionId: string
-): Promise<PartListUnion[]> {
-  const responses: PartListUnion[] = [];
-
-  // Await the tool registry promise here
-  const toolRegistry = await toolRegistryPromise;
-
-  for (const toolCall of toolCalls) {
-    const requestInfo: any = {
-      callId: toolCall.id || `${toolCall.name}-${Date.now()}`,
-      name: toolCall.name,
-      args: toolCall.args || {},
-      isClientInitiated: false,
-    };
-
-    try {
-      console.log('executing tool call:', requestInfo);
-      const toolResponse = await executeToolCall(
-        config,
-        requestInfo,
-        toolRegistry,
-        undefined // no abort signal for API
-      );
-
-      if (toolResponse.error) {
-        console.error(`Error executing tool ${toolCall.name}:`, toolResponse.error.message);
-        responses.push([{ text: `Error executing tool ${toolCall.name}: ${toolResponse.error.message}` }]);
-      } else if (toolResponse.responseParts) {
-        const parts = Array.isArray(toolResponse.responseParts)
-          ? toolResponse.responseParts
-          : [toolResponse.responseParts];
-        
-        for (const part of parts) {
-          if (typeof part === 'string') {
-            responses.push([{ text: part }]);
-          } else if (part) {
-            responses.push([part]);
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error executing tool ${toolCall.name}:`, error);
-      responses.push([{ text: `Error executing tool ${toolCall.name}: ${error}` }]);
-    }
-  }
-
-  return responses;
-}
-
-/** 
- * @author Tianshu.Ma
- * 生成随机的prompt_id
- */
-function generatePromptId(){
-  return +`${(Math.random()*10000).toFixed()}${+Date.now()}`;
-}
-// --- New orchestrated helpers for API flow ---
-
+// 准备查询
 async function prepareQueryForGemini(
   query: PartListUnion,
   sessionId: string,
-  abortSignal: AbortSignal,
+  config: Config,
 ): Promise<{
   queryToSend: PartListUnion | null;
   shouldProceed: boolean;
@@ -257,18 +287,18 @@ async function prepareQueryForGemini(
   return { queryToSend: localQueryToSendToGemini, shouldProceed: true };
 }
 
+// 处理Gemini流事件
 async function processGeminiStreamEvents(
-  stream: AsyncIterable<any>,
+  stream: AsyncIterable<ServerGeminiStreamEvent>,
   sessionId: string,
-  signal: AbortSignal,
 ): Promise<{
   content: string;
-  toolCallRequests: any[];
-  thought: any;
+  toolCallRequests: ToolCallRequestInfo[];
+  thought: ThoughtSummary | null;
 }> {
   let geminiMessageBuffer = '';
-  const toolCallRequests: any[] = [];
-  let thought = null;
+  const toolCallRequests: ToolCallRequestInfo[] = [];
+  let thought: ThoughtSummary | null = null;
   for await (const event of stream) {
     if ('value' in event) {
       console.log(`Session ${sessionId}: Gemini event:`, event.type, event.value);
@@ -280,10 +310,12 @@ async function processGeminiStreamEvents(
         thought = event.value;
         break;
       case 'content':
-        geminiMessageBuffer += event.value;
+        geminiMessageBuffer += event.value || '';
         break;
       case 'tool_call_request':
-        toolCallRequests.push(event.value);
+        if (event.value) {
+          toolCallRequests.push(event.value);
+        }
         break;
       case 'user_cancelled':
         break;
@@ -298,10 +330,13 @@ async function processGeminiStreamEvents(
   return { content: geminiMessageBuffer, toolCallRequests, thought };
 }
 
+// 处理完成的工具
 async function handleCompletedTools(
-  completedToolCalls: any[],
-  sessionId: string,
-  geminiClient: GeminiClient,
+  completedToolCalls: {
+    status: string;
+    request: { isClientInitiated: boolean };
+    response?: { responseParts: PartListUnion };
+  }[],
 ): Promise<PartListUnion | null> {
   const completedAndReadyToSubmitTools = completedToolCalls.filter(
     (tc) => {
@@ -321,246 +356,488 @@ async function handleCompletedTools(
     return null;
   }
   const responsesToSend: PartListUnion[] = geminiTools.map(
-    (toolCall) => toolCall.response.responseParts,
+    (toolCall) => toolCall.response?.responseParts || [],
   );
   return mergePartListUnions(responsesToSend);
 }
 
+// 添加诊断函数，检查请求流程中的模型选择
+function debugModelSelection(model: string, config: Config): void {
+  console.log(`[DEBUG] 模型选择诊断:`);
+  console.log(`  1. 请求指定模型: ${model || '(未指定)'}`);
+  console.log(`  2. 配置实例中的模型: ${config.getModel()}`);
+  console.log(`  3. 环境变量中的API URL: ${process.env.OPENAI_API_URL || '(未设置)'}`);
+  console.log(`  4. USE_OPENAI环境变量: ${process.env.USE_OPENAI || '(未设置)'}`);
+}
+
+// 提交查询
 async function submitQuery(
   query: PartListUnion,
   sessionId: string,
   abortSignal: AbortSignal,
+  config: Config,
+  apiKey?: string,
 ): Promise<string> {
-  const geminiClient = await getGeminiClient(sessionId);
-  const scheduler = getToolScheduler(sessionId);
+  const geminiClient = await getGeminiClient(sessionId, config, apiKey);
+  const scheduler = getToolScheduler(sessionId, config);
+  
+  // 诊断模型选择
+  debugModelSelection(config.getModel(), config);
+  
   const { queryToSend, shouldProceed } = await prepareQueryForGemini(
     query,
     sessionId,
-    abortSignal,
+    config,
   );
   if (!shouldProceed || queryToSend === null) {
     return '';
   }
   try {
-    const stream = geminiClient.sendMessageStream(queryToSend, abortSignal, generatePromptId());
-    const { content, toolCallRequests, thought } = await processGeminiStreamEvents(
+    const stream = geminiClient.sendMessageStream(queryToSend, abortSignal);
+    const { content, toolCallRequests } = await processGeminiStreamEvents(
       stream,
       sessionId,
-      abortSignal,
     );
     if (toolCallRequests.length > 0) {
-      console.log(`Session ${sessionId}: Scheduling ${toolCallRequests.length} tool calls`);
-      scheduler.schedule(toolCallRequests, abortSignal);
-      const completedTools = await new Promise<any[]>((resolve) => {
-        const originalOnComplete = scheduler['onAllToolCallsComplete'];
-        scheduler['onAllToolCallsComplete'] = (tools: any) => { // WARN:explicit any
-          originalOnComplete?.(tools);
-          resolve(tools);
-        };
-      });
-      const toolResponse = await handleCompletedTools(completedTools, sessionId, geminiClient);
+      console.log(`Session ${sessionId}: 调度 ${toolCallRequests.length} 个工具调用`);
+      
+      // 使用超时处理函数执行工具
+      const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortSignal);
+      
+      const toolResponse = await handleCompletedTools(completedTools);
       if (toolResponse) {
-        const finalStream = geminiClient.sendMessageStream(toolResponse, abortSignal, generatePromptId());
-        const finalResult = await processGeminiStreamEvents(finalStream, sessionId, abortSignal);
+        const finalStream = geminiClient.sendMessageStream(toolResponse, abortSignal);
+        const finalResult = await processGeminiStreamEvents(finalStream, sessionId);
         return finalResult.content || content;
       }
     }
     return content;
   } catch (error: unknown) {
     if (error instanceof UnauthorizedError) {
-      throw new Error('Authentication error - please check your API key');
+      throw new Error('认证错误 - 请检查您的API密钥');
     } else {
       const errorMessage = getErrorMessage(error) || 'Unknown error';
-      console.error(`Session ${sessionId}: Error -`, errorMessage);
+      console.error(`Session ${sessionId}: 错误 -`, errorMessage);
       throw new Error(parseAndFormatApiError(errorMessage));
     }
   }
 }
 
-// --- Streaming Gemini output to client (OpenAI-compatible) ---
+// 实现心跳机制，保持连接活跃
+function startHeartbeat(res: Response, intervalMs: number = 15000): { stop: () => void } {
+  const heartbeatInterval = setInterval(() => {
+    if (!res.writableEnded) {
+      try {
+        // 发送注释作为心跳，避免影响正常的事件流
+        res.write(`: heartbeat\n\n`);
+        if ('flush' in res && typeof res.flush === 'function') {
+          res.flush();
+        }
+        console.log('心跳包已发送');
+      } catch (err) {
+        console.warn('发送心跳包失败:', err);
+        clearInterval(heartbeatInterval);
+      }
+    } else {
+      clearInterval(heartbeatInterval);
+    }
+  }, intervalMs);
+  
+  return {
+    stop: () => {
+      clearInterval(heartbeatInterval);
+    }
+  };
+}
+
+// 流式返回Gemini输出到客户端
 async function streamGeminiToClient(
   userMessage: string,
   sessionId: string,
   abortSignal: AbortSignal,
   res: Response,
-  model: string
+  model: string,
+  config: Config,
+  apiKey?: string,
 ) {
-  const geminiClient = await getGeminiClient(sessionId);
-  const scheduler = getToolScheduler(sessionId);
+  // 启动心跳
+  const heartbeat = startHeartbeat(res);
 
-  // Prepare the query
-  const { queryToSend, shouldProceed } = await prepareQueryForGemini(
-    userMessage,
-    sessionId,
-    abortSignal,
-  );
-  if (!shouldProceed || queryToSend === null) {
-    res.write(`data: ${JSON.stringify({ error: { message: "No query to send" } })}\n\n`);
-    res.write('data: [DONE]\n\n');
-    res.end();
-    return;
-  }
-
-  let index = 0;
-  let currentQuery = queryToSend;
   try {
-    while (true) {
-      const toolCallRequests: any[] = [];
-      const stream = geminiClient.sendMessageStream(currentQuery, abortSignal, generatePromptId());
-      for await (const event of stream) {
-        if ('value' in event) {
-          console.log(`Session ${sessionId}: Gemini event:`, event.type, event.value);
-        } else {
-          console.log(`Session ${sessionId}: Gemini event:`, event.type);
-        }
-        // Stream all event types in OpenAI-compatible format
-        let delta;
-        if (event.type === 'content') {
-          delta = { content: event.value };
-        } else if ('value' in event) {
-          // Serialize non-content objects as JSON strings for the client
-          if (typeof event.value === 'object' && event.value !== null) {
-            delta = { [event.type]: JSON.stringify(event.value) };
+    const geminiClient = await getGeminiClient(sessionId, config, apiKey);
+    const scheduler = getToolScheduler(sessionId, config);
+
+    // 准备查询
+    const { queryToSend, shouldProceed } = await prepareQueryForGemini(
+      userMessage,
+      sessionId,
+      config,
+    );
+    if (!shouldProceed || queryToSend === null) {
+      res.write(`data: ${JSON.stringify({ error: { message: "No query to send" } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      heartbeat.stop();
+      res.end();
+      return;
+    }
+
+    console.log(`[streamGeminiToClient] 开始流式处理，使用模型: ${model}`);
+    let currentQuery = queryToSend;
+    try {
+      while (true) {
+        // 更新最后活动时间
+        const toolCallRequests: ToolCallRequestInfo[] = [];
+        
+        // 尝试发送消息流，捕获可能的token计算错误
+        let stream;
+        try {
+          stream = geminiClient.sendMessageStream(currentQuery, abortSignal);
+        } catch (streamError) {
+          // 如果是token计算错误，记录并尝试不进行压缩的方式再次发送
+          if (streamError instanceof Error && 
+              streamError.message && 
+              streamError.message.includes('token')) {
+            console.warn(`[streamGeminiToClient] Token计算错误，尝试不进行压缩: ${streamError.message}`);
+            
+            // 尝试直接发送请求，不进行压缩处理
+            stream = geminiClient.sendMessageStream(currentQuery, abortSignal);
           } else {
+            // 其他错误则重新抛出
+            throw streamError;
+          }
+        }
+        
+        for await (const event of stream) {
+          if ('value' in event) {
+            console.log(`Session ${sessionId}: Gemini event:`, event.type, typeof event.value);
+          } else {
+            console.log(`Session ${sessionId}: Gemini event:`, event.type);
+          }
+          // Stream all event types in OpenAI-compatible format
+          let delta: {[key: string]: unknown} = { };
+          
+          if (event.type === 'content') {
+            delta = { content: event.value || '' };
+          } else if (event.type === 'thought' && event.value) {
+            // 以结构化方式处理思考事件
+            delta = { 
+              thinking: {
+                subject: event.value.subject || '',
+                description: event.value.description || '',
+              }
+            };
+          } else if (event.type === 'tool_call_request' && event.value) {
+            // 以结构化方式处理工具调用请求
+            delta = { 
+              tool_calls: [{
+                id: event.value.callId || `tool-${Date.now()}`,
+                type: "function",
+                function: {
+                  name: event.value.name || '',
+                  arguments: event.value.args ? JSON.stringify(event.value.args) : '{}'
+                }
+              }]
+            };
+            toolCallRequests.push(event.value);
+          } else if (event.type !== 'user_cancelled' && 'value' in event && event.value) {
             delta = { [event.type]: event.value };
           }
-        } else {
-          // For user_cancelled and any future events without value
-          delta = { [event.type]: true };
-        }
-        const chunk = {
-          id: `chatcmpl-${Date.now()}`,
-          object: 'chat.completion.chunk',
-          created: Math.floor(Date.now() / 1000),
-          model: model || 'gemini',
-          choices: [
-            {
-              index: 0,
-              delta,
-              finish_reason: null,
-            },
-          ],
-        };
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-        if (event.type === 'tool_call_request') {
-          toolCallRequests.push(event.value);
-        }
-        index++;
-      }
-      if (toolCallRequests.length === 0) {
-        break; // No more tool calls, finish streaming
-      }
-      // Run tools and prepare toolResponses for next loop
-      // Use the same logic as handleCompletedTools, but inline for streaming
-      scheduler.schedule(toolCallRequests, abortSignal);
-      const completedTools = await new Promise<any[]>((resolve) => {
-        const originalOnComplete = scheduler['onAllToolCallsComplete'];
-        scheduler['onAllToolCallsComplete'] = (tools: any) => { // WARN:explicit any
-          originalOnComplete?.(tools);
-          resolve(tools);
-        };
-      });
-      const completedAndReadyToSubmitTools = completedTools.filter(
-        (tc) => {
-          const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
-          if (isTerminalState) {
-            return tc.response?.responseParts !== undefined;
+
+          const chunk = {
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: model || 'gpt-4', // 保持模型名称一致性
+            choices: [
+              {
+                index: 0,
+                delta,
+                finish_reason: null,
+              },
+            ],
+          };
+          
+          // 发送数据并立即刷新
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          // 在Node.js环境中尝试刷新数据
+          if ('flush' in res && typeof res.flush === 'function') {
+            try {
+              res.flush();
+            } catch (flushErr) {
+              console.warn(`无法刷新响应流: ${flushErr}`);
+            }
           }
-          return false;
-        },
-      );
-      const geminiTools = completedAndReadyToSubmitTools.filter(t => !t.request.isClientInitiated);
-      if (geminiTools.length === 0) {
-        break;
+        }
+        
+        if (toolCallRequests.length === 0) {
+          break; // 没有更多工具调用，完成流式传输
+        }
+        
+        console.log(`[streamGeminiToClient] 处理 ${toolCallRequests.length} 个工具调用`);
+        
+        // 运行工具并为下一循环准备工具响应
+        try {
+          // 发送工具执行中间状态
+          const toolExecutionChunk = {
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: model || 'gpt-4',
+            choices: [
+              {
+                index: 0,
+                delta: { tool_execution_status: "executing" },
+                finish_reason: null,
+              },
+            ],
+          };
+          res.write(`data: ${JSON.stringify(toolExecutionChunk)}\n\n`);
+          
+          // 使用超时处理函数执行工具
+          const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortSignal);
+          
+          const completedAndReadyToSubmitTools = completedTools.filter(
+            (tc) => {
+              const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
+              if (isTerminalState) {
+                return tc.response?.responseParts !== undefined;
+              }
+              return false;
+            },
+          );
+          const geminiTools = completedAndReadyToSubmitTools.filter(t => !t.request.isClientInitiated);
+          if (geminiTools.length === 0) {
+            break;
+          }
+          const allToolsCancelled = geminiTools.every(tc => tc.status === 'cancelled');
+          if (allToolsCancelled) {
+            break;
+          }
+          const responsesToSend: PartListUnion[] = geminiTools.map(
+            (toolCall) => toolCall.response?.responseParts || [],
+          );
+          
+          // 准备下一个查询作为工具响应
+          currentQuery = mergePartListUnions(responsesToSend);
+          
+          // 发送工具完成状态
+          const toolCompletedChunk = {
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: model || 'gpt-4',
+            choices: [
+              {
+                index: 0,
+                delta: { tool_execution_status: "completed" },
+                finish_reason: null,
+              },
+            ],
+          };
+          res.write(`data: ${JSON.stringify(toolCompletedChunk)}\n\n`);
+          
+        } catch (toolError) {
+          console.error(`[streamGeminiToClient] 工具执行错误:`, toolError);
+          const errorMessage = toolError instanceof Error ? toolError.message : '工具执行失败';
+          const errorChunk = {
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: model || 'gpt-4',
+            choices: [
+              {
+                index: 0,
+                delta: { error: errorMessage },
+                finish_reason: "tool_execution_error",
+              },
+            ],
+          };
+          res.write(`data: ${JSON.stringify(errorChunk)}\n\n`);
+          break;
+        }
       }
-      const allToolsCancelled = geminiTools.every(tc => tc.status === 'cancelled');
-      if (allToolsCancelled) {
-        break;
+      // 结束流
+      res.write('data: [DONE]\n\n');
+      heartbeat.stop();
+      res.end();
+    } catch (error) {
+      console.error(`[streamGeminiToClient] 流处理错误:`, error);
+      const errorMessage = error instanceof Error ? error.message : '内部服务器错误';
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
       }
-      const responsesToSend: PartListUnion[] = geminiTools.map(
-        (toolCall) => toolCall.response.responseParts,
-      );
-      // Prepare the next query as the tool responses
-      // Use mergePartListUnions to flatten if needed
-      currentQuery = mergePartListUnions(responsesToSend);
+      res.write(`data: ${JSON.stringify({ error: { message: errorMessage } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      heartbeat.stop();
+      res.end();
     }
-    // End the stream
+  } catch (initError) {
+    console.error(`[streamGeminiToClient] 初始化错误:`, initError);
+    const errorMessage = initError instanceof Error ? initError.message : '服务初始化错误';
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+    }
+    res.write(`data: ${JSON.stringify({ error: { message: errorMessage } })}\n\n`);
     res.write('data: [DONE]\n\n');
-    res.end();
-  } catch (error: any) {
-    res.write(`data: ${JSON.stringify({ error: { message: error.message || 'Internal server error' } })}\n\n`);
-    res.write('data: [DONE]\n\n');
+    heartbeat.stop();
     res.end();
   }
 }
 
-// --- Update the main POST endpoint to use submitQuery or streaming ---
+// 添加API连接状态检查
+async function checkApiConnection(): Promise<boolean> {
+  if (!process.env.OPENAI_API_URL) {
+    return false;
+  }
+  
+  try {
+    const response = await fetch(`${process.env.OPENAI_API_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      console.log('API服务器连接正常');
+      return true;
+    } else {
+      console.warn(`API服务器连接异常: ${response.status} ${response.statusText}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('API服务器连接检查失败:', error);
+    return false;
+  }
+}
+
+// 验证模型名称
+function validateModel(modelName: string): string {
+  if (!modelName) return DEFAULT_CONFIG.model;
+  
+  // 直接返回模型名称，不做映射
+  return modelName;
+}
+
 app.post('/v1/chat/completions', (req: Request, res: Response) => {
   (async () => {
+    const abortController = new AbortController();
+    const abortSignal = abortController.signal;
+    
+    // 请求超时处理
+    const requestTimeout = setTimeout(() => {
+      abortController.abort();
+      if (!res.headersSent) {
+        res.status(408).json({ error: { message: '请求处理超时' } });
+      } else if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ error: { message: '请求处理超时' } })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      }
+    }, 300000); // 5分钟超时
+    
     try {
-      console.log('request:', req.body);
-      const { messages, model, temperature, top_p, max_tokens, stream, session_id } = req.body;
-      const systemMessage = messages.find((msg: any) => msg.role === 'system');
+      console.log('请求体:', JSON.stringify(req.body, null, 2));
+      const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry } = req.body;
+      const apiKeyFromHeader = req.headers['x-api-key'] as string;
+      const finalApiKey = apiKeyFromHeader || api_key;
+
+      if (disable_telemetry) {
+        process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+      }
+      
+      // 检查API连接状态
+      const apiConnected = await checkApiConnection();
+      if (!apiConnected) {
+        console.warn('API服务器连接不可用，可能导致请求失败');
+      }
+      
+      // 记录并验证模型选择
+      const requestedModel = model || DEFAULT_CONFIG.model;
+      console.log(`接收到的模型参数: ${requestedModel}`);
+      const validatedModel = validateModel(requestedModel);
+      
+      const currentConfig = createConfig(project_path, validatedModel);
+      await currentConfig.initialize();
+      if (project_path) {
+        console.log(`使用自定义项目路径: ${project_path}`);
+        await currentConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
+      }
+      
+      // 验证模型配置
+      console.log(`当前配置使用的模型: ${currentConfig.getModel()}`);
+      
+      // 运行模型诊断
+      debugModelSelection(validatedModel, currentConfig);
+      
+      // 处理系统消息
+      const systemMessage = messages.find((msg: {role: string}) => msg.role === 'system');
       if (systemMessage) {
         messages.splice(messages.indexOf(systemMessage), 1);
+        console.log(`收到系统消息: ${systemMessage.content}`);
       }
+      
       if (!messages || !Array.isArray(messages)) {
-        const errorResp = { error: { message: 'Invalid messages array' } };
-        console.error('response:', errorResp);
+        const errorResp = { error: { message: '无效的消息数组' } };
+        console.error('响应:', errorResp);
         return res.status(400).json(errorResp);
       }
       const sessionId = session_id || 'default';
-      let chat = chatSessions.get(sessionId);
+      const chatKey = `${sessionId}-${currentConfig.getTargetDir()}-${finalApiKey || ''}`;
+      let chat = chatSessions.get(chatKey);
       if (!chat) {
-        const contentGenerator = await getContentGenerator();
+        const contentGenerator = await getContentGenerator(currentConfig, finalApiKey);
         const generationConfig: GenerateContentConfig = {
           temperature,
           topP: top_p,
           maxOutputTokens: max_tokens,
         };
-        chat = new GeminiChat(config, contentGenerator, generationConfig);
-        chatSessions.set(sessionId, chat);
+        chat = new GeminiChat(currentConfig, contentGenerator, generationConfig);
+        chatSessions.set(chatKey, chat);
       }
       const userMessage = messages[messages.length - 1]?.content;
       if (!userMessage) {
-        const errorResp = { error: { message: 'No user message provided' } };
-        console.error('response:', errorResp);
+        const errorResp = { error: { message: '未提供用户消息' } };
+        console.error('响应:', errorResp);
         return res.status(400).json(errorResp);
       }
-      const abortController = new AbortController();
-      const abortSignal = abortController.signal;
 
       if (stream) {
-        // Streaming response
+        // 流式响应
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
         try {
-          await streamGeminiToClient(userMessage, sessionId, abortSignal, res, model);
-          console.log('response: [streaming completed]');
-        } catch (streamErr: any) {
-          const errorResp = { error: { message: streamErr?.message || 'Internal server error' } };
-          console.error('response:', errorResp);
+          await streamGeminiToClient(userMessage, sessionId, abortSignal, res, validatedModel, currentConfig, finalApiKey);
+          console.log('响应: [流式传输完成]');
+        } catch (streamErr) {
+          console.error('流式传输错误:', streamErr);
+          const errorMessage = streamErr instanceof Error ? streamErr.message : '内部服务器错误';
+          const errorResp = { error: { message: errorMessage } };
+          console.error('响应:', errorResp);
           if (!res.headersSent) {
+            res.status(500).json(errorResp);
+          } else if (!res.writableEnded) {
             res.write(`data: ${JSON.stringify(errorResp)}\n\n`);
             res.write('data: [DONE]\n\n');
             res.end();
-          } else {
-            res.end();
           }
         }
-        return;
       } else {
-        // Non-streaming (existing behavior)
+        // 非流式（现有行为）
         try {
-          const responseText = await submitQuery(userMessage, sessionId, abortSignal);
+          const responseText = await submitQuery(userMessage, sessionId, abortSignal, currentConfig, finalApiKey);
           const contentString = typeof responseText === 'string' ? responseText : JSON.stringify(responseText);
           const responseObj = {
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion',
             created: Math.floor(Date.now() / 1000),
-            model: model || 'gemini',
+            model: validatedModel,
             choices: [
               {
                 index: 0,
@@ -571,72 +848,74 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
             usage: {},
             session_id: sessionId,
           };
-          console.log('response:', JSON.stringify(responseObj, null, 2));
+          console.log('响应:', JSON.stringify(responseObj, null, 2));
           return res.json(responseObj);
-        } catch (nonStreamErr: any) {
-          const errorResp = { error: { message: nonStreamErr?.message || 'Internal server error' } };
-          console.error('response:', errorResp);
+        } catch (nonStreamErr) {
+          console.error('非流式响应错误:', nonStreamErr);
+          const errorMessage = nonStreamErr instanceof Error ? nonStreamErr.message : '内部服务器错误';
+          const errorResp = { error: { message: errorMessage } };
+          console.error('响应:', errorResp);
           if (!res.headersSent) {
             return res.status(500).json(errorResp);
-          } else {
+          } else if (!res.writableEnded) {
             res.end();
           }
         }
       }
-    } catch (err: any) {
-      const errorResp = { error: { message: err?.message || 'Internal server error' } };
-      console.error('response:', errorResp);
+    } catch (err) {
+      console.error('请求处理错误:', err);
+      const errorMessage = err instanceof Error ? err.message : '内部服务器错误';
+      const errorResp = { error: { message: errorMessage } };
+      console.error('响应:', errorResp);
       if (!res.headersSent) {
         return res.status(500).json(errorResp);
-      } else {
+      } else if (!res.writableEnded) {
         res.end();
       }
+    } finally {
+      clearTimeout(requestTimeout);
     }
   })();
 });
 
-// Endpoint to clear a chat session
+// 清除聊天会话端点
 app.delete('/v1/chat/sessions/:sessionId', (req: Request, res: Response) => {
   const { sessionId } = req.params;
-  chatSessions.delete(sessionId);
-  res.json({ message: `Session ${sessionId} cleared` });
+  // This is a simplified cleanup. A more robust solution would iterate through
+  // all configs if project_path was used.
+  chatSessions.forEach((_val, key) => {
+    if (key.startsWith(sessionId)) {
+      chatSessions.delete(key);
+    }
+  });
+  geminiClients.forEach((_val, key) => {
+    if (key.startsWith(sessionId)) {
+      geminiClients.delete(key);
+    }
+  });
+  toolSchedulers.forEach((_val, key) => {
+    if (key.startsWith(sessionId)) {
+      toolSchedulers.delete(key);
+    }
+  });
+  res.json({ message: `与会话 ${sessionId} 相关的所有实例均已清除` });
 });
 
-// Endpoint to list active sessions
+// 列出活跃会话端点
 app.get('/v1/chat/sessions', (req: Request, res: Response) => {
-  
   const sessions = Array.from(chatSessions.keys());
   res.json({ sessions });
 });
 
-app.get('/v1/chatPage', (_, res: Response)=>{
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  
-  const htmlpath = path.join(__dirname, 'client-test.html');
-  res.sendFile(htmlpath);
-})
+// 在根目录提供client-test.html
+app.get('/v1/chatPage', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client-test.html'));
+});
 
-const DEFAULT_PORT = Number(process.env.PORT) || 3000;
-const MAX_PORT_TRIES = 10;
-
-function startServer(port: number, triesLeft: number) {
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`OpenAI-compatible API service listening on port ${port}`);
-    toolRegistryPromise.then(registry => {
-      console.log(`Tool registry initialized with ${registry.getAllTools().length} tools`);
-    });
+const port = Number(process.env.PORT) || 3000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`OpenAI兼容API服务正在监听端口 ${port}`);
+  toolRegistryPromise.then(registry => {
+    console.log(`工具注册表已初始化，共有 ${registry.getAllTools().length} 个工具`);
   });
-
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE' && triesLeft > 0) {
-      console.warn(`Port ${port} in use, trying port ${port + 1}...`);
-      startServer(port + 1, triesLeft - 1);
-    } else {
-      console.error(`Failed to start server: ${err.message}`);
-      process.exit(1);
-    }
-  });
-}
-
-startServer(DEFAULT_PORT, MAX_PORT_TRIES); 
+}); 
