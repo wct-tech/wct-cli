@@ -1,450 +1,722 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Gemini Chat Client</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; height: 100vh; }
-    #main-container {
-      display: flex;
-      flex-direction: row;
-      height: 100vh;
-      min-height: 0;
-      position: relative;
-    }
-    #dragbar {
-      width: 6px;
-      background: #e0e0e0;
-      cursor: ew-resize;
-      z-index: 20;
-      transition: background 0.2s;
-      user-select: none;
-      flex: none;
-      position: relative;
-    }
-    #dragbar:hover, #dragbar.active {
-      background: #bdbdbd;
-    }
-    #chat-panel {
-      flex: 2 1 0;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-      border-right: 1px solid #eee;
-      min-width: 0;
-      min-width: 180px;
-    }
-    #chat {
-      border: none;
-      background: #fff;
-      padding: 1em;
-      flex: 1 1 auto;
-      overflow-y: auto;
-      margin-bottom: 0;
-      min-height: 0;
-      height: 100%;
-    }
-    #side-panel {
-      flex: 1 1 320px;
-      max-width: 400px;
-      min-width: 260px;
-      background: rgba(255,255,255,0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
-      padding: 2em 1.5em 1em 1.5em;
-      box-shadow: -2px 0 12px rgba(0,0,0,0.04);
-      position: relative;
-      min-height: 0;
-    }
-    .user { color: #1976d2; text-align: right; }
-    .assistant { color: #388e3c; }
-    #input-area {
-      display: flex;
-      gap: 0.5em;
-      margin-top: 2em;
-    }
-    #message {
-      flex: 1;
-      min-height: 48px;
-      max-height: 40vh;
-      font-size: 1.1em;
-      padding: 0.5em 1em;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      resize: vertical;
-      width: 100%;
-      line-height: 1.5;
-      overflow-y: auto;
-    }
-    #baseUrl, #sessionId {
-      width: 220px;
-      max-width: 100%;
-      box-sizing: border-box;
-      margin-right: 0.5em;
-    }
-    .thought {
-      background: #fffde7;
-      color: #795548;
-      border-left: 4px solid #ffeb3b;
-      margin: 0.5em 0;
-      padding: 0.5em 1em;
-      font-style: italic;
-    }
-    .tool-call {
-      background: #e3f2fd;
-      color: #0d47a1;
-      border-left: 4px solid #2196f3;
-      margin: 0.5em 0;
-      padding: 0.5em 1em;
-      font-family: monospace;
-      white-space: pre-wrap;
-    }
-    @media (max-width: 900px) {
-      #main-container { flex-direction: column; }
-      #chat-panel, #side-panel { max-width: none; min-width: 0; width: 100%; }
-      #side-panel { box-shadow: none; padding: 1em; }
-    }
-    @media (max-width: 600px) {
-      #input-area { padding: 0.5em 0.5em; }
-    }
-    
-    #streamResponse {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="main-container">
-    <div id="chat-panel">
-      <div id="chat"></div>
-    </div>
-    <div id="dragbar"></div>
-    <div id="side-panel">
-      <h2>Gemini Chat Client</h2>
-      <div style="margin-bottom:1em; display: flex; align-items: center; gap: 0.5em;">
-        <label for="baseUrl" style="min-width: 70px;">Base URL:</label>
-        <input type="text" id="baseUrl" placeholder="http://localhost:3000" />
-      </div>
-      <div style="margin-bottom:1em; display: flex; align-items: center; gap: 0.5em; flex-wrap: nowrap;">
-        <label for="sessionId" style="min-width: 70px;">Session ID:</label>
-        <input type="text" id="sessionId" placeholder="(optional, for context)" style="flex:1 1 0; min-width:0;" />
-        <button id="newSession" style="white-space:nowrap;">New Session</button>
-      </div>
-      <input type="checkbox" id="streamResponse" checked style="display:none;" />
-      <form id="input-area">
-        <textarea id="message" placeholder="Type your message..." autocomplete="off" required rows="8"></textarea>
-        <button type="submit">Send</button>
-      </form>
-    </div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script>
-    marked.setOptions({ breaks: true });
-    const chatDiv = document.getElementById('chat');
-    const form = document.getElementById('input-area');
-    const messageInput = document.getElementById('message');
-    const sessionIdInput = document.getElementById('sessionId');
-    const newSessionBtn = document.getElementById('newSession');
-    const baseUrlInput = document.getElementById('baseUrl');
-    const streamResponseCheckbox = document.getElementById('streamResponse');
-
-    let sessionId = localStorage.getItem('gemini_session_id') || '';
-    let baseUrl = localStorage.getItem('gemini_base_url') || 'http://localhost:3000';
-    baseUrlInput.value = baseUrl;
-
-    if (sessionId) sessionIdInput.value = sessionId;
-
-    function appendMessage(role, text) {
-      const div = document.createElement('div');
-      div.className = role;
-      if (role === 'assistant') {
-        div.innerHTML = `<b>Assistant:</b> ` + marked.parse(text);
-      } else {
-        div.innerHTML = `<b>You:</b> ${text}`;
+  <head>
+    <meta charset="UTF-8" />
+    <title>OpenAI Chat Client</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f9f9f9;
+        height: 100vh;
       }
-      chatDiv.appendChild(div);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-
-    function setSessionId(id) {
-      sessionId = id;
-      if (id) {
-        localStorage.setItem('gemini_session_id', id);
-      } else {
-        localStorage.removeItem('gemini_session_id');
+      #main-container {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+        min-height: 0;
+        position: relative;
       }
-    }
-
-    sessionIdInput.addEventListener('change', (e) => {
-      setSessionId(e.target.value.trim());
-      chatDiv.innerHTML = '';
-    });
-
-    newSessionBtn.addEventListener('click', () => {
-      const newId = 'session-' + Date.now();
-      sessionIdInput.value = newId;
-      setSessionId(newId);
-      chatDiv.innerHTML = '';
-    });
-
-    baseUrlInput.addEventListener('change', (e) => {
-      baseUrl = e.target.value.trim();
-      localStorage.setItem('gemini_base_url', baseUrl);
-    });
-
-    
-    streamResponseCheckbox.checked = true;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userMsg = messageInput.value.trim();
-      if (!userMsg) return;
-      appendMessage('user', userMsg);
-      messageInput.value = '';
-      messageInput.style.height = 'auto';
-      try {
-        const payload = {
-          messages: [{ role: 'user', content: userMsg }],
-        };
-        if (sessionIdInput.value.trim()) {
-          payload.session_id = sessionIdInput.value.trim();
+      #dragbar {
+        width: 6px;
+        background: #e0e0e0;
+        cursor: ew-resize;
+        z-index: 20;
+        transition: background 0.2s;
+        user-select: none;
+        flex: none;
+        position: relative;
+      }
+      #dragbar:hover,
+      #dragbar.active {
+        background: #bdbdbd;
+      }
+      #chat-panel {
+        flex: 2 1 0;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-right: 1px solid #eee;
+        min-width: 0;
+        min-width: 180px;
+      }
+      #chat {
+        border: none;
+        background: #fff;
+        padding: 1em;
+        flex: 1 1 auto;
+        overflow-y: auto;
+        margin-bottom: 0;
+        min-height: 0;
+        height: 100%;
+      }
+      #side-panel {
+        flex: 1 1 320px;
+        max-width: 400px;
+        min-width: 260px;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 2em 1.5em 1em 1.5em;
+        box-shadow: -2px 0 12px rgba(0, 0, 0, 0.04);
+        position: relative;
+        min-height: 0;
+      }
+      .user {
+        color: #1976d2;
+        text-align: right;
+      }
+      .assistant {
+        color: #388e3c;
+      }
+      #input-area {
+        display: flex;
+        gap: 0.5em;
+        margin-top: 2em;
+      }
+      #message {
+        flex: 1;
+        min-height: 48px;
+        max-height: 40vh;
+        font-size: 1.1em;
+        padding: 0.5em 1em;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+        resize: vertical;
+        width: 100%;
+        line-height: 1.5;
+        overflow-y: auto;
+      }
+      #baseUrl,
+      #sessionId,
+      #projectPath,
+      #apiKey {
+        width: 220px;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-right: 0.5em;
+      }
+      .thought {
+        background: #fffde7;
+        color: #795548;
+        border-left: 4px solid #ffeb3b;
+        margin: 0.5em 0;
+        padding: 0.5em 1em;
+        font-style: italic;
+      }
+      .tool-call {
+        background: #e3f2fd;
+        color: #0d47a1;
+        border-left: 4px solid #2196f3;
+        margin: 0.5em 0;
+        padding: 0.5em 1em;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+      .file-input {
+        display: none;
+      }
+      .button-row {
+        display: flex;
+        gap: 0.5em;
+        margin-bottom: 1em;
+      }
+      @media (max-width: 900px) {
+        #main-container {
+          flex-direction: column;
         }
-        if (streamResponseCheckbox.checked) {
-          // Streaming response
-          const res = await fetch(baseUrl + '/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...payload, stream: true }),
-          });
-          if (!res.body || !window.ReadableStream) {
-            appendMessage('assistant', '<span style="color:red;">Streaming not supported in this browser.</span>');
-            return;
+        #chat-panel,
+        #side-panel {
+          max-width: none;
+          min-width: 0;
+          width: 100%;
+        }
+        #side-panel {
+          box-shadow: none;
+          padding: 1em;
+        }
+      }
+      @media (max-width: 600px) {
+        #input-area {
+          padding: 0.5em 0.5em;
+        }
+      }
+
+      #streamResponse {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="main-container">
+      <div id="chat-panel">
+        <div id="chat"></div>
+      </div>
+      <div id="dragbar"></div>
+      <div id="side-panel">
+        <h2>OpenAI Chat Client</h2>
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+          "
+        >
+          <label for="baseUrl" style="min-width: 70px">Base URL:</label>
+          <input type="text" id="baseUrl" placeholder="http://localhost:3000" />
+        </div>
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: nowrap;
+          "
+        >
+          <label for="apiKey" style="min-width: 70px">API Key:</label>
+          <input
+            type="password"
+            id="apiKey"
+            placeholder="输入API Key"
+            style="flex: 1 1 0; min-width: 0"
+          />
+        </div>
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: nowrap;
+          "
+        >
+          <label for="sessionId" style="min-width: 70px">Session ID:</label>
+          <input
+            type="text"
+            id="sessionId"
+            placeholder="(optional, for context)"
+            style="flex: 1 1 0; min-width: 0"
+          />
+          <button id="newSession" style="white-space: nowrap">
+            New Session
+          </button>
+        </div>
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: nowrap;
+          "
+        >
+          <label for="projectPath" style="min-width: 70px">项目路径:</label>
+          <input
+            type="text"
+            id="projectPath"
+            placeholder="输入项目目录路径"
+            style="flex: 1 1 0; min-width: 0"
+          />
+          <button id="browsePath" style="white-space: nowrap">浏览...</button>
+        </div>
+        
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: nowrap;
+          "
+        >
+          <label for="modelSelect" style="min-width: 70px">模型选择:</label>
+          <select id="modelSelect" style="flex: 1 1 0; min-width: 0; height: 28px;">
+            <option value="gemini-2.5-pro" selected>gemini-2.5-pro (默认)</option>
+            <option value="gpt-4-omni">gpt-4-omni</option>
+            <option value="gpt-4.1">gpt-4.1</option>
+            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            <option value="claude-4-sonnet">claude-4-sonnet</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+            <option value="deepseek-r1">deepseek-r1</option>
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4-vision">gpt-4-vision</option>
+          </select>
+        </div>
+        
+        <div
+          style="
+            margin-bottom: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: nowrap;
+          "
+        >
+          <label for="disableTelemetry" style="min-width: 70px">禁用遥测:</label>
+          <input
+            type="checkbox"
+            id="disableTelemetry"
+            checked
+            style="margin: 0"
+          />
+        </div>
+        
+        <input
+          type="checkbox"
+          id="streamResponse"
+          checked
+          style="display: none"
+        />
+        <form id="input-area">
+          <textarea
+            id="message"
+            placeholder="Type your message..."
+            autocomplete="off"
+            required
+            rows="8"
+          ></textarea>
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      marked.setOptions({ breaks: true });
+      const chatDiv = document.getElementById('chat');
+      const form = document.getElementById('input-area');
+      const messageInput = document.getElementById('message');
+      const sessionIdInput = document.getElementById('sessionId');
+      const newSessionBtn = document.getElementById('newSession');
+      const baseUrlInput = document.getElementById('baseUrl');
+      const projectPathInput = document.getElementById('projectPath');
+      const browsePath = document.getElementById('browsePath');
+      const streamResponseCheckbox = document.getElementById('streamResponse');
+      const modelSelect = document.getElementById('modelSelect');
+      const apiKeyInput = document.getElementById('apiKey');
+      const disableTelemetryCheckbox = document.getElementById('disableTelemetry');
+
+      let sessionId = localStorage.getItem('openai_session_id') || '';
+      let baseUrl =
+        localStorage.getItem('openai_base_url') || 'http://localhost:3000';
+      let projectPath = localStorage.getItem('openai_project_path') || '';
+      let selectedModel = localStorage.getItem('openai_selected_model') || 'gemini-2.5-pro';
+      let apiKey = localStorage.getItem('openai_api_key') || '';
+      let disableTelemetry = localStorage.getItem('openai_disable_telemetry') !== 'false';
+
+      baseUrlInput.value = baseUrl;
+      projectPathInput.value = projectPath;
+      modelSelect.value = selectedModel;
+      apiKeyInput.value = apiKey;
+      disableTelemetryCheckbox.checked = disableTelemetry;
+
+      if (sessionId) sessionIdInput.value = sessionId;
+
+      function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.className = role;
+        if (role === 'assistant') {
+          div.innerHTML = `<b>Assistant:</b> ` + marked.parse(text);
+        } else {
+          div.innerHTML = `<b>You:</b> ${text}`;
+        }
+        chatDiv.appendChild(div);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+      }
+
+      function setSessionId(id) {
+        sessionId = id;
+        if (id) {
+          localStorage.setItem('openai_session_id', id);
+        } else {
+          localStorage.removeItem('openai_session_id');
+        }
+      }
+
+      sessionIdInput.addEventListener('change', (e) => {
+        setSessionId(e.target.value.trim());
+        chatDiv.innerHTML = '';
+      });
+
+      newSessionBtn.addEventListener('click', () => {
+        const newId = 'session-' + Date.now();
+        sessionIdInput.value = newId;
+        setSessionId(newId);
+        chatDiv.innerHTML = '';
+      });
+
+      baseUrlInput.addEventListener('change', (e) => {
+        baseUrl = e.target.value.trim();
+        localStorage.setItem('openai_base_url', baseUrl);
+      });
+
+      projectPathInput.addEventListener('change', (e) => {
+        projectPath = e.target.value.trim();
+        localStorage.setItem('openai_project_path', projectPath);
+      });
+
+      modelSelect.addEventListener('change', (e) => {
+        selectedModel = e.target.value;
+        localStorage.setItem('openai_selected_model', selectedModel);
+      });
+      
+      apiKeyInput.addEventListener('change', (e) => {
+        apiKey = e.target.value.trim();
+        localStorage.setItem('openai_api_key', apiKey);
+      });
+      
+      disableTelemetryCheckbox.addEventListener('change', (e) => {
+        disableTelemetry = e.target.checked;
+        localStorage.setItem('openai_disable_telemetry', disableTelemetry);
+      });
+
+      // 文件夹选择（在支持的浏览器中）
+      browsePath.addEventListener('click', () => {
+        // 使用浏览器的alert提示，因为Web页面无法直接浏览文件系统
+        alert(
+          '请直接在输入框中输入项目的绝对路径\n例如: /home/user/projects/myproject',
+        );
+      });
+
+      streamResponseCheckbox.checked = true;
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userMsg = messageInput.value.trim();
+        if (!userMsg) return;
+        appendMessage('user', userMsg);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        try {
+          const payload = {
+            messages: [{ role: 'user', content: userMsg }],
+            model: selectedModel, // 使用选定的模型
+          };
+
+          // 添加会话ID
+          if (sessionIdInput.value.trim()) {
+            payload.session_id = sessionIdInput.value.trim();
           }
-          let assistantDiv = document.createElement('div');
-          assistantDiv.className = 'assistant';
-          assistantDiv.innerHTML = '<b>Assistant:</b> ';
-          chatDiv.appendChild(assistantDiv);
-          chatDiv.scrollTop = chatDiv.scrollHeight;
-          const reader = res.body.getReader();
-          let decoder = new TextDecoder();
-          let buffer = '';
-          let streamedSequence = [];
-          let currentContent = '';
-          function renderAssistantContent() {
-            let html = '';
-            for (const item of streamedSequence) {
-              if (item.type === 'content') {
-                html += marked.parse(item.value);
-              } else if (item.type === 'thought') {
-                html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
-              } else if (item.type === 'tool_call_request') {
-                html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
+
+          // 添加项目路径 - 确保始终传递项目路径信息
+          payload.project_path = projectPathInput.value.trim() || '';
+          
+          // 添加API Key和禁用遥测选项
+          if (apiKeyInput.value.trim()) {
+            payload.api_key = apiKeyInput.value.trim();
+          }
+          
+          payload.disable_telemetry = disableTelemetryCheckbox.checked;
+
+          if (streamResponseCheckbox.checked) {
+            // Streaming response
+            const res = await fetch(baseUrl + '/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-session-id': sessionIdInput.value.trim(),
+                ...(apiKeyInput.value.trim() ? {'x-api-key': apiKeyInput.value.trim()} : {})
+              },
+              body: JSON.stringify({ ...payload, stream: true }),
+            });
+            if (!res.body || !window.ReadableStream) {
+              appendMessage(
+                'assistant',
+                '<span style="color:red;">Streaming not supported in this browser.</span>',
+              );
+              return;
+            }
+            let assistantDiv = document.createElement('div');
+            assistantDiv.className = 'assistant';
+            assistantDiv.innerHTML = '<b>Assistant:</b> ';
+            chatDiv.appendChild(assistantDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            const reader = res.body.getReader();
+            let decoder = new TextDecoder();
+            let buffer = '';
+            let streamedSequence = [];
+            let currentContent = '';
+            function renderAssistantContent() {
+              let html = '';
+              for (const item of streamedSequence) {
+                if (item.type === 'content') {
+                  html += marked.parse(item.value);
+                } else if (item.type === 'thought') {
+                  html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
+                } else if (item.type === 'tool_call_request') {
+                  html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
+                }
+              }
+              assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
+              chatDiv.scrollTop = chatDiv.scrollHeight;
+            }
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              // Try to parse as JSON lines (assuming server sends lines of JSON)
+              let lines = buffer.split('\n');
+              buffer = lines.pop(); // last line may be incomplete
+              for (let line of lines) {
+                let trimmed = line.trim();
+                if (
+                  !trimmed ||
+                  trimmed === 'data: [DONE]' ||
+                  trimmed === '[DONE]'
+                )
+                  continue;
+                if (trimmed.startsWith('data: ')) {
+                  trimmed = trimmed.slice(6); // Remove 'data: ' prefix
+                }
+                try {
+                  const chunk = JSON.parse(trimmed);
+                  // console.log('Streamed chunk:', chunk);
+                  if (
+                    chunk.choices &&
+                    chunk.choices[0] &&
+                    chunk.choices[0].delta
+                  ) {
+                    const delta = chunk.choices[0].delta;
+                    let shouldRender = false;
+                    if (delta.content) {
+                      currentContent += delta.content;
+                      shouldRender = true;
+                    }
+                    if (delta.thought || delta.tool_call_request) {
+                      if (currentContent) {
+                        streamedSequence.push({
+                          type: 'content',
+                          value: currentContent,
+                        });
+                        currentContent = '';
+                      }
+                      if (delta.thought) {
+                        streamedSequence.push({
+                          type: 'thought',
+                          value: delta.thought,
+                        });
+                      }
+                      if (delta.tool_call_request) {
+                        let value = '';
+                        if (typeof delta.tool_call_request === 'object') {
+                          value = JSON.stringify(
+                            delta.tool_call_request,
+                            null,
+                            2,
+                          );
+                        } else {
+                          value = delta.tool_call_request;
+                        }
+                        streamedSequence.push({
+                          type: 'tool_call_request',
+                          value,
+                        });
+                      }
+                      shouldRender = true;
+                    }
+                    if (shouldRender) {
+                      // Remove last content if we're still typing
+                      let tempSequence = streamedSequence.slice();
+                      if (currentContent) {
+                        tempSequence.push({
+                          type: 'content',
+                          value: currentContent,
+                        });
+                      }
+                      let html = '';
+                      for (const item of tempSequence) {
+                        if (item.type === 'content') {
+                          html += marked.parse(item.value);
+                        } else if (item.type === 'thought') {
+                          html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
+                        } else if (item.type === 'tool_call_request') {
+                          html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
+                        }
+                      }
+                      assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
+                      chatDiv.scrollTop = chatDiv.scrollHeight;
+                    }
+                  }
+                } catch (e) {
+                  // Optionally log, but not for [DONE]
+                  if (trimmed !== '[DONE]') {
+                    console.error('Error parsing streamed chunk:', e, trimmed);
+                  }
+                  // Ignore parse errors
+                }
               }
             }
-            assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-          }
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            // Try to parse as JSON lines (assuming server sends lines of JSON)
-            let lines = buffer.split('\n');
-            buffer = lines.pop(); // last line may be incomplete
-            for (let line of lines) {
-              let trimmed = line.trim();
-              if (!trimmed || trimmed === 'data: [DONE]' || trimmed === '[DONE]') continue;
-              if (trimmed.startsWith('data: ')) {
-                trimmed = trimmed.slice(6); // Remove 'data: ' prefix
-              }
+            // Optionally parse the last buffer
+            if (buffer.trim()) {
               try {
-                const chunk = JSON.parse(trimmed);
+                const chunk = JSON.parse(buffer);
                 // console.log('Streamed chunk:', chunk);
-                if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) {
+                if (
+                  chunk.choices &&
+                  chunk.choices[0] &&
+                  chunk.choices[0].delta
+                ) {
                   const delta = chunk.choices[0].delta;
-                  let shouldRender = false;
                   if (delta.content) {
                     currentContent += delta.content;
-                    shouldRender = true;
                   }
                   if (delta.thought || delta.tool_call_request) {
                     if (currentContent) {
-                      streamedSequence.push({ type: 'content', value: currentContent });
+                      streamedSequence.push({
+                        type: 'content',
+                        value: currentContent,
+                      });
                       currentContent = '';
                     }
                     if (delta.thought) {
-                      streamedSequence.push({ type: 'thought', value: delta.thought });
+                      streamedSequence.push({
+                        type: 'thought',
+                        value: delta.thought,
+                      });
                     }
                     if (delta.tool_call_request) {
                       let value = '';
                       if (typeof delta.tool_call_request === 'object') {
-                        value = JSON.stringify(delta.tool_call_request, null, 2);
+                        value = JSON.stringify(
+                          delta.tool_call_request,
+                          null,
+                          2,
+                        );
                       } else {
                         value = delta.tool_call_request;
                       }
-                      streamedSequence.push({ type: 'tool_call_request', value });
+                      streamedSequence.push({
+                        type: 'tool_call_request',
+                        value,
+                      });
                     }
-                    shouldRender = true;
                   }
-                  if (shouldRender) {
-                    // Remove last content if we're still typing
-                    let tempSequence = streamedSequence.slice();
-                    if (currentContent) {
-                      tempSequence.push({ type: 'content', value: currentContent });
-                    }
-                    let html = '';
-                    for (const item of tempSequence) {
-                      if (item.type === 'content') {
-                        html += marked.parse(item.value);
-                      } else if (item.type === 'thought') {
-                        html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
-                      } else if (item.type === 'tool_call_request') {
-                        html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
-                      }
-                    }
-                    assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
-                    chatDiv.scrollTop = chatDiv.scrollHeight;
+                  // Final render
+                  let tempSequence = streamedSequence.slice();
+                  if (currentContent) {
+                    tempSequence.push({
+                      type: 'content',
+                      value: currentContent,
+                    });
                   }
+                  let html = '';
+                  for (const item of tempSequence) {
+                    if (item.type === 'content') {
+                      html += marked.parse(item.value);
+                    } else if (item.type === 'thought') {
+                      html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
+                    } else if (item.type === 'tool_call_request') {
+                      html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
+                    }
+                  }
+                  assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
+                  chatDiv.scrollTop = chatDiv.scrollHeight;
                 }
-              } catch (e) {
-                // Optionally log, but not for [DONE]
-                if (trimmed !== '[DONE]') {
-                  console.error('Error parsing streamed chunk:', e, trimmed);
-                }
-                // Ignore parse errors
-              }
+              } catch (e) {}
+            }
+          } else {
+            // Non-streaming response
+            const headers = {
+              'Content-Type': 'application/json',
+              'x-session-id': sessionIdInput.value.trim()
+            };
+            
+            if (apiKeyInput.value.trim()) {
+              headers['x-api-key'] = apiKeyInput.value.trim();
+            }
+            
+            const res = await fetch(baseUrl + '/v1/chat/completions', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (data.choices && data.choices[0]) {
+              appendMessage('assistant', data.choices[0].message.content);
+            } else if (data.error) {
+              appendMessage(
+                'assistant',
+                `<span style="color:red;">Error: ${data.error.message}</span>`,
+              );
+            }
+            // Update session id if returned
+            if (data.session_id) {
+              setSessionId(data.session_id);
+              sessionIdInput.value = data.session_id;
             }
           }
-          // Optionally parse the last buffer
-          if (buffer.trim()) {
-            try {
-              const chunk = JSON.parse(buffer);
-              // console.log('Streamed chunk:', chunk);
-              if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta) {
-                const delta = chunk.choices[0].delta;
-                if (delta.content) {
-                  currentContent += delta.content;
-                }
-                if (delta.thought || delta.tool_call_request) {
-                  if (currentContent) {
-                    streamedSequence.push({ type: 'content', value: currentContent });
-                    currentContent = '';
-                  }
-                  if (delta.thought) {
-                    streamedSequence.push({ type: 'thought', value: delta.thought });
-                  }
-                  if (delta.tool_call_request) {
-                    let value = '';
-                    if (typeof delta.tool_call_request === 'object') {
-                      value = JSON.stringify(delta.tool_call_request, null, 2);
-                    } else {
-                      value = delta.tool_call_request;
-                    }
-                    streamedSequence.push({ type: 'tool_call_request', value });
-                  }
-                }
-                // Final render
-                let tempSequence = streamedSequence.slice();
-                if (currentContent) {
-                  tempSequence.push({ type: 'content', value: currentContent });
-                }
-                let html = '';
-                for (const item of tempSequence) {
-                  if (item.type === 'content') {
-                    html += marked.parse(item.value);
-                  } else if (item.type === 'thought') {
-                    html += `<div class="thought">💡 <b>Thought:</b> ${item.value}</div>`;
-                  } else if (item.type === 'tool_call_request') {
-                    html += `<div class="tool-call">🔧 <b>Tool Call:</b> <pre>${item.value}</pre></div>`;
-                  }
-                }
-                assistantDiv.innerHTML = '<b>Assistant:</b> ' + html;
-                chatDiv.scrollTop = chatDiv.scrollHeight;
-              }
-            } catch (e) {}
-          }
-        } else {
-          // Non-streaming response
-          const res = await fetch(baseUrl + '/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const data = await res.json();
-          if (data.choices && data.choices[0]) {
-            appendMessage('assistant', data.choices[0].message.content);
-          } else if (data.error) {
-            appendMessage('assistant', `<span style="color:red;">Error: ${data.error.message}</span>`);
-          }
-          // Update session id if returned
-          if (data.session_id) {
-            setSessionId(data.session_id);
-            sessionIdInput.value = data.session_id;
-          }
+        } catch (err) {
+          appendMessage(
+            'assistant',
+            `<span style="color:red;">Network error: ${err.message}</span>`,
+          );
         }
-      } catch (err) {
-        appendMessage('assistant', `<span style="color:red;">Network error: ${err.message}</span>`);
-      }
-    });
+      });
 
-    function setMessageMaxHeight() {
-      messageInput.style.height = 'auto';
-      messageInput.style.height = (window.innerHeight * 0.4) + 'px';
-    }
-    setMessageMaxHeight();
-    messageInput.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, window.innerHeight * 0.4) + 'px';
-    });
-    window.addEventListener('resize', setMessageMaxHeight);
+      function setMessageMaxHeight() {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = window.innerHeight * 0.4 + 'px';
+      }
+      setMessageMaxHeight();
+      messageInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height =
+          Math.min(this.scrollHeight, window.innerHeight * 0.4) + 'px';
+      });
+      window.addEventListener('resize', setMessageMaxHeight);
 
-    
-    const dragbar = document.getElementById('dragbar');
-    const chatPanel = document.getElementById('chat-panel');
-    const sidePanel = document.getElementById('side-panel');
-    let dragging = false;
-    dragbar.addEventListener('mousedown', function(e) {
-      dragging = true;
-      dragbar.classList.add('active');
-      document.body.style.cursor = 'ew-resize';
-    });
-    document.addEventListener('mousemove', function(e) {
-      if (!dragging) return;
-      const minChat = 180, minSide = 260, maxSide = 600;
-      const dragbarWidth = dragbar.offsetWidth;
-      const containerRect = document.getElementById('main-container').getBoundingClientRect();
-      let x = e.clientX - containerRect.left;
-     
-      if (x < minChat) x = minChat;
-      if (x > containerRect.width - minSide - dragbarWidth) x = containerRect.width - minSide - dragbarWidth;
-      chatPanel.style.flex = 'none';
-      chatPanel.style.width = x + 'px';
-      sidePanel.style.flex = 'none';
-      let sideWidth = containerRect.width - x - dragbarWidth;
-      if (sideWidth > maxSide) {
-        sideWidth = maxSide;
-        chatPanel.style.width = (containerRect.width - maxSide - dragbarWidth) + 'px';
-      }
-      sidePanel.style.width = sideWidth + 'px';
-    });
-    document.addEventListener('mouseup', function(e) {
-      if (dragging) {
-        dragging = false;
-        dragbar.classList.remove('active');
-        document.body.style.cursor = '';
-      }
-    });
+      const dragbar = document.getElementById('dragbar');
+      const chatPanel = document.getElementById('chat-panel');
+      const sidePanel = document.getElementById('side-panel');
+      let dragging = false;
+      dragbar.addEventListener('mousedown', function (e) {
+        dragging = true;
+        dragbar.classList.add('active');
+        document.body.style.cursor = 'ew-resize';
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        const minChat = 180,
+          minSide = 260,
+          maxSide = 600;
+        const dragbarWidth = dragbar.offsetWidth;
+        const containerRect = document
+          .getElementById('main-container')
+          .getBoundingClientRect();
+        let x = e.clientX - containerRect.left;
 
-    
-    messageInput.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'Enter') {
-        form.requestSubmit ? form.requestSubmit() : form.submit();
-        e.preventDefault();
-      }
-    });
-  </script>
-</body>
+        if (x < minChat) x = minChat;
+        if (x > containerRect.width - minSide - dragbarWidth)
+          x = containerRect.width - minSide - dragbarWidth;
+        chatPanel.style.flex = 'none';
+        chatPanel.style.width = x + 'px';
+        sidePanel.style.flex = 'none';
+        let sideWidth = containerRect.width - x - dragbarWidth;
+        if (sideWidth > maxSide) {
+          sideWidth = maxSide;
+          chatPanel.style.width =
+            containerRect.width - maxSide - dragbarWidth + 'px';
+        }
+        sidePanel.style.width = sideWidth + 'px';
+      });
+      document.addEventListener('mouseup', function (e) {
+        if (dragging) {
+          dragging = false;
+          dragbar.classList.remove('active');
+          document.body.style.cursor = '';
+        }
+      });
+
+      messageInput.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+          form.requestSubmit ? form.requestSubmit() : form.submit();
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
 </html>
