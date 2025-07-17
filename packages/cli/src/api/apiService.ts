@@ -141,7 +141,7 @@ async function getContentGenerator(config: Config, apiKey?: string): Promise<Con
   const authType = apiKey ? AuthType.USE_IWHALECLOUD : AuthType.USE_IWHALECLOUD;
   const model = config.getModel();
   
-  const cgConfig = await createContentGeneratorConfig(model, authType);
+  const cgConfig = await createContentGeneratorConfig(model, authType, apiKey);
   const key = JSON.stringify(cgConfig);
   
   if (!contentGeneratorCache.has(key)) {
@@ -168,7 +168,8 @@ async function getGeminiClient(sessionId: string, config: Config, apiKey?: strin
     // 使用传入的API Key创建内容生成器配置
     const contentGeneratorConfig = await createContentGeneratorConfig(
       config.getModel(), 
-      AuthType.USE_IWHALECLOUD
+      AuthType.USE_IWHALECLOUD,
+      apiKey
     );
     await client.initialize(contentGeneratorConfig);
     geminiClients.set(clientKey, client);
