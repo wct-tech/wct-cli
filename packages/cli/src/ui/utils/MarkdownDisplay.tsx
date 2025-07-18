@@ -21,7 +21,7 @@ interface MarkdownDisplayProps {
 // Constants for Markdown parsing and rendering
 
 const EMPTY_LINE_HEIGHT = 1;
-const CODE_BLOCK_PREFIX_PADDING = 1;
+const CODE_BLOCK_PADDING = 1;
 const LIST_ITEM_PREFIX_PADDING = 1;
 const LIST_ITEM_TEXT_FLEX_GROW = 1;
 
@@ -44,20 +44,12 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
 
   const contentBlocks: React.ReactNode[] = [];
   let inCodeBlock = false;
-  let lastLineEmpty = true;
   let codeBlockContent: string[] = [];
   let codeBlockLang: string | null = null;
   let codeBlockFence = '';
   let inTable = false;
   let tableRows: string[][] = [];
   let tableHeaders: string[] = [];
-
-  function addContentBlock(block: React.ReactNode) {
-    if (block) {
-      contentBlocks.push(block);
-      lastLineEmpty = false;
-    }
-  }
 
   lines.forEach((line, index) => {
     const key = `line-${index}`;
@@ -69,7 +61,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
         fenceMatch[1].startsWith(codeBlockFence[0]) &&
         fenceMatch[1].length >= codeBlockFence.length
       ) {
-        addContentBlock(
+        contentBlocks.push(
           <RenderCodeBlock
             key={key}
             content={codeBlockContent}
@@ -112,7 +104,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
         tableRows = [];
       } else {
         // Not a table, treat as regular text
-        addContentBlock(
+        contentBlocks.push(
           <Box key={key}>
             <Text wrap="wrap">
               <RenderInline text={line} />
@@ -136,7 +128,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
     } else if (inTable && !tableRowMatch) {
       // End of table
       if (tableHeaders.length > 0 && tableRows.length > 0) {
-        addContentBlock(
+        contentBlocks.push(
           <RenderTable
             key={`table-${contentBlocks.length}`}
             headers={tableHeaders}
@@ -151,7 +143,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
 
       // Process current line as normal
       if (line.trim().length > 0) {
-        addContentBlock(
+        contentBlocks.push(
           <Box key={key}>
             <Text wrap="wrap">
               <RenderInline text={line} />
@@ -160,7 +152,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
         );
       }
     } else if (hrMatch) {
-      addContentBlock(
+      contentBlocks.push(
         <Box key={key}>
           <Text dimColor>---</Text>
         </Box>,
@@ -206,12 +198,12 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
           );
           break;
       }
-      if (headerNode) addContentBlock(<Box key={key}>{headerNode}</Box>);
+      if (headerNode) contentBlocks.push(<Box key={key}>{headerNode}</Box>);
     } else if (ulMatch) {
       const leadingWhitespace = ulMatch[1];
       const marker = ulMatch[2];
       const itemText = ulMatch[3];
-      addContentBlock(
+      contentBlocks.push(
         <RenderListItem
           key={key}
           itemText={itemText}
@@ -224,7 +216,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
       const leadingWhitespace = olMatch[1];
       const marker = olMatch[2];
       const itemText = olMatch[3];
-      addContentBlock(
+      contentBlocks.push(
         <RenderListItem
           key={key}
           itemText={itemText}
@@ -234,15 +226,12 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
         />,
       );
     } else {
-      if (line.trim().length === 0 && !inCodeBlock) {
-        if (!lastLineEmpty) {
-          contentBlocks.push(
-            <Box key={`spacer-${index}`} height={EMPTY_LINE_HEIGHT} />,
-          );
-          lastLineEmpty = true;
+      if (line.trim().length === 0) {
+        if (contentBlocks.length > 0 && !inCodeBlock) {
+          contentBlocks.push(<Box key={key} height={EMPTY_LINE_HEIGHT} />);
         }
       } else {
-        addContentBlock(
+        contentBlocks.push(
           <Box key={key}>
             <Text wrap="wrap">
               <RenderInline text={line} />
@@ -254,7 +243,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
   });
 
   if (inCodeBlock) {
-    addContentBlock(
+    contentBlocks.push(
       <RenderCodeBlock
         key="line-eof"
         content={codeBlockContent}
@@ -268,7 +257,7 @@ const MarkdownDisplayInternal: React.FC<MarkdownDisplayProps> = ({
 
   // Handle table at end of content
   if (inTable && tableHeaders.length > 0 && tableRows.length > 0) {
-    addContentBlock(
+    contentBlocks.push(
       <RenderTable
         key={`table-${contentBlocks.length}`}
         headers={tableHeaders}
@@ -304,14 +293,14 @@ const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
   if (isPending && availableTerminalHeight !== undefined) {
     const MAX_CODE_LINES_WHEN_PENDING = Math.max(
       0,
-      availableTerminalHeight - RESERVED_LINES,
+      availableTerminalHeight - CODE_BLOCK_PADDING * 2 - RESERVED_LINES,
     );
 
     if (content.length > MAX_CODE_LINES_WHEN_PENDING) {
       if (MAX_CODE_LINES_WHEN_PENDING < MIN_LINES_FOR_MESSAGE) {
         // Not enough space to even show the message meaningfully
         return (
-          <Box paddingLeft={CODE_BLOCK_PREFIX_PADDING}>
+          <Box padding={CODE_BLOCK_PADDING}>
             <Text color={Colors.Gray}>... code is being written ...</Text>
           </Box>
         );
@@ -321,10 +310,10 @@ const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
         truncatedContent.join('\n'),
         lang,
         availableTerminalHeight,
-        terminalWidth - CODE_BLOCK_PREFIX_PADDING,
+        terminalWidth - CODE_BLOCK_PADDING * 2,
       );
       return (
-        <Box paddingLeft={CODE_BLOCK_PREFIX_PADDING} flexDirection="column">
+        <Box flexDirection="column" padding={CODE_BLOCK_PADDING}>
           {colorizedTruncatedCode}
           <Text color={Colors.Gray}>... generating more ...</Text>
         </Box>
@@ -337,13 +326,13 @@ const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
     fullContent,
     lang,
     availableTerminalHeight,
-    terminalWidth - CODE_BLOCK_PREFIX_PADDING,
+    terminalWidth - CODE_BLOCK_PADDING * 2,
   );
 
   return (
     <Box
-      paddingLeft={CODE_BLOCK_PREFIX_PADDING}
       flexDirection="column"
+      padding={CODE_BLOCK_PADDING}
       width={terminalWidth}
       flexShrink={0}
     >

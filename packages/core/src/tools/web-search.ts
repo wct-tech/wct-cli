@@ -6,7 +6,6 @@
 
 import { GroundingMetadata } from '@google/genai';
 import { BaseTool, ToolResult } from './tools.js';
-import { Type } from '@google/genai';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 
 import { getErrorMessage } from '../utils/errors.js';
@@ -70,10 +69,10 @@ export class WebSearchTool extends BaseTool<
       'GoogleSearch',
       'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.',
       {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
           query: {
-            type: Type.STRING,
+            type: 'string',
             description: 'The search query to find information on the web.',
           },
         },
@@ -87,12 +86,16 @@ export class WebSearchTool extends BaseTool<
    * @param params The parameters to validate
    * @returns An error message string if validation fails, null if valid
    */
-  validateParams(params: WebSearchToolParams): string | null {
-    const errors = SchemaValidator.validate(this.schema.parameters, params);
-    if (errors) {
-      return errors;
+  validateToolParams(params: WebSearchToolParams): string | null {
+    if (
+      this.schema.parameters &&
+      !SchemaValidator.validate(
+        this.schema.parameters as Record<string, unknown>,
+        params,
+      )
+    ) {
+      return "Parameters failed schema validation. Ensure 'query' is a string.";
     }
-
     if (!params.query || params.query.trim() === '') {
       return "The 'query' parameter cannot be empty.";
     }

@@ -15,7 +15,6 @@ import {
   ToolResult,
   ToolResultDisplay,
 } from './tools.js';
-import { Type } from '@google/genai';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
@@ -24,7 +23,6 @@ import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
 import { ReadFileTool } from './read-file.js';
 import { ModifiableTool, ModifyContext } from './modifiable-tool.js';
-import { isWithinRoot } from '../utils/fileUtils.js';
 
 /**
  * Parameters for the Edit tool
@@ -73,7 +71,12 @@ export class EditTool
   implements ModifiableTool<EditToolParams>
 {
   static readonly Name = 'replace';
+  private readonly rootDirectory: string;
 
+  /**
+   * Creates a new instance of the EditLogic
+   * @param rootDirectory Root directory to ground this tool in.
+   */
   constructor(private readonly config: Config) {
     super(
       EditTool.Name,
@@ -94,28 +97,46 @@ Expectation for required parameters:
           file_path: {
             description:
               "The absolute path to the file to modify. Must start with '/'.",
-            type: Type.STRING,
+            type: 'string',
           },
           old_string: {
             description:
               'The exact literal text to replace, preferably unescaped. For single replacements (default), include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. For multiple replacements, specify expected_replacements parameter. If this string is not the exact literal text (i.e. you escaped it) or does not match exactly, the tool will fail.',
-            type: Type.STRING,
+            type: 'string',
           },
           new_string: {
             description:
               'The exact literal text to replace `old_string` with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
-            type: Type.STRING,
+            type: 'string',
           },
           expected_replacements: {
-            type: Type.NUMBER,
+            type: 'number',
             description:
               'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
             minimum: 1,
           },
         },
         required: ['file_path', 'old_string', 'new_string'],
-        type: Type.OBJECT,
+        type: 'object',
       },
+    );
+    this.rootDirectory = path.resolve(this.config.getTargetDir());
+  }
+
+  /**
+   * Checks if a path is within the root directory.
+   * @param pathToCheck The absolute path to check.
+   * @returns True if the path is within the root directory, false otherwise.
+   */
+  private isWithinRoot(pathToCheck: string): boolean {
+    const normalizedPath = path.normalize(pathToCheck);
+    const normalizedRoot = this.rootDirectory;
+    const rootWithSep = normalizedRoot.endsWith(path.sep)
+      ? normalizedRoot
+      : normalizedRoot + path.sep;
+    return (
+      normalizedPath === normalizedRoot ||
+      normalizedPath.startsWith(rootWithSep)
     );
   }
 
@@ -125,17 +146,22 @@ Expectation for required parameters:
    * @returns Error message string or null if valid
    */
   validateToolParams(params: EditToolParams): string | null {
-    const errors = SchemaValidator.validate(this.schema.parameters, params);
-    if (errors) {
-      return errors;
+    if (
+      this.schema.parameters &&
+      !SchemaValidator.validate(
+        this.schema.parameters as Record<string, unknown>,
+        params,
+      )
+    ) {
+      return 'Parameters failed schema validation.';
     }
 
     if (!path.isAbsolute(params.file_path)) {
       return `File path must be absolute: ${params.file_path}`;
     }
 
-    if (!isWithinRoot(params.file_path, this.config.getTargetDir())) {
-      return `File path must be within the root directory (${this.config.getTargetDir()}): ${params.file_path}`;
+    if (!this.isWithinRoot(params.file_path)) {
+      return `File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`;
     }
 
     return null;
@@ -303,7 +329,7 @@ Expectation for required parameters:
     );
     const confirmationDetails: ToolEditConfirmationDetails = {
       type: 'edit',
-      title: `Confirm Edit: ${shortenPath(makeRelative(params.file_path, this.config.getTargetDir()))}`,
+      title: `Confirm Edit: ${shortenPath(makeRelative(params.file_path, this.rootDirectory))}`,
       fileName,
       fileDiff,
       onConfirm: async (outcome: ToolConfirmationOutcome) => {
@@ -319,10 +345,7 @@ Expectation for required parameters:
     if (!params.file_path || !params.old_string || !params.new_string) {
       return `Model did not provide valid parameters for edit tool`;
     }
-    const relativePath = makeRelative(
-      params.file_path,
-      this.config.getTargetDir(),
-    );
+    const relativePath = makeRelative(params.file_path, this.rootDirectory);
     if (params.old_string === '') {
       return `Create ${shortenPath(relativePath)}`;
     }
@@ -381,7 +404,7 @@ Expectation for required parameters:
 
       let displayResult: ToolResultDisplay;
       if (editData.isNewFile) {
-        displayResult = `Created ${shortenPath(makeRelative(params.file_path, this.config.getTargetDir()))}`;
+        displayResult = `Created ${shortenPath(makeRelative(params.file_path, this.rootDirectory))}`;
       } else {
         // Generate diff for display, even though core logic doesn't technically need it
         // The CLI wrapper will use this part of the ToolResult

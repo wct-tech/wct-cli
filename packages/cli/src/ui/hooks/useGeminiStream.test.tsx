@@ -109,13 +109,12 @@ vi.mock('./useLogger.js', () => ({
   }),
 }));
 
-const mockStartNewPrompt = vi.fn();
+const mockStartNewTurn = vi.fn();
 const mockAddUsage = vi.fn();
 vi.mock('../contexts/SessionContext.js', () => ({
   useSessionStats: vi.fn(() => ({
-    startNewPrompt: mockStartNewPrompt,
+    startNewTurn: mockStartNewTurn,
     addUsage: mockAddUsage,
-    getPromptCount: vi.fn(() => 5),
   })),
 }));
 
@@ -273,13 +272,6 @@ describe('useGeminiStream', () => {
       return clientInstance;
     });
 
-    const contentGeneratorConfig = {
-      model: 'test-model',
-      apiKey: 'test-key',
-      vertexai: false,
-      authType: AuthType.USE_GEMINI,
-    };
-
     mockConfig = {
       apiKey: 'test-api-key',
       model: 'gemini-pro',
@@ -309,14 +301,6 @@ describe('useGeminiStream', () => {
       getUsageStatisticsEnabled: () => true,
       getDebugMode: () => false,
       addHistory: vi.fn(),
-      getSessionId() {
-        return 'test-session-id';
-      },
-      setQuotaErrorOccurred: vi.fn(),
-      getQuotaErrorOccurred: vi.fn(() => false),
-      getContentGeneratorConfig: vi
-        .fn()
-        .mockReturnValue(contentGeneratorConfig),
     } as unknown as Config;
     mockOnDebugMessage = vi.fn();
     mockHandleSlashCommand = vi.fn().mockResolvedValue(false);
@@ -402,8 +386,6 @@ describe('useGeminiStream', () => {
           () => 'vscode' as EditorType,
           () => {},
           () => Promise.resolve(),
-          false,
-          () => {},
         );
       },
       {
@@ -440,7 +422,6 @@ describe('useGeminiStream', () => {
           name: 'tool1',
           args: {},
           isClientInitiated: false,
-          prompt_id: 'prompt-id-1',
         },
         status: 'success',
         responseSubmittedToGemini: false,
@@ -459,12 +440,7 @@ describe('useGeminiStream', () => {
         endTime: Date.now(),
       } as TrackedCompletedToolCall,
       {
-        request: {
-          callId: 'call2',
-          name: 'tool2',
-          args: {},
-          prompt_id: 'prompt-id-1',
-        },
+        request: { callId: 'call2', name: 'tool2', args: {} },
         status: 'executing',
         responseSubmittedToGemini: false,
         tool: {
@@ -501,7 +477,6 @@ describe('useGeminiStream', () => {
           name: 'tool1',
           args: {},
           isClientInitiated: false,
-          prompt_id: 'prompt-id-2',
         },
         status: 'success',
         responseSubmittedToGemini: false,
@@ -513,7 +488,6 @@ describe('useGeminiStream', () => {
           name: 'tool2',
           args: {},
           isClientInitiated: false,
-          prompt_id: 'prompt-id-2',
         },
         status: 'error',
         responseSubmittedToGemini: false,
@@ -544,8 +518,6 @@ describe('useGeminiStream', () => {
         () => 'vscode' as EditorType,
         () => {},
         () => Promise.resolve(),
-        false,
-        () => {},
       ),
     );
 
@@ -568,7 +540,6 @@ describe('useGeminiStream', () => {
     expect(mockSendMessageStream).toHaveBeenCalledWith(
       expectedMergedResponse,
       expect.any(AbortSignal),
-      'prompt-id-2',
     );
   });
 
@@ -580,7 +551,6 @@ describe('useGeminiStream', () => {
           name: 'testTool',
           args: {},
           isClientInitiated: false,
-          prompt_id: 'prompt-id-3',
         },
         status: 'cancelled',
         response: { callId: '1', responseParts: [{ text: 'cancelled' }] },
@@ -612,8 +582,6 @@ describe('useGeminiStream', () => {
         () => 'vscode' as EditorType,
         () => {},
         () => Promise.resolve(),
-        false,
-        () => {},
       ),
     );
 
@@ -642,7 +610,6 @@ describe('useGeminiStream', () => {
         name: 'toolA',
         args: {},
         isClientInitiated: false,
-        prompt_id: 'prompt-id-7',
       },
       tool: {
         name: 'toolA',
@@ -666,7 +633,6 @@ describe('useGeminiStream', () => {
         name: 'toolB',
         args: {},
         isClientInitiated: false,
-        prompt_id: 'prompt-id-8',
       },
       tool: {
         name: 'toolB',
@@ -709,8 +675,6 @@ describe('useGeminiStream', () => {
         () => 'vscode' as EditorType,
         () => {},
         () => Promise.resolve(),
-        false,
-        () => {},
       ),
     );
 
@@ -757,7 +721,6 @@ describe('useGeminiStream', () => {
           name: 'tool1',
           args: {},
           isClientInitiated: false,
-          prompt_id: 'prompt-id-4',
         },
         status: 'executing',
         responseSubmittedToGemini: false,
@@ -812,8 +775,6 @@ describe('useGeminiStream', () => {
         () => 'vscode' as EditorType,
         () => {},
         () => Promise.resolve(),
-        false,
-        () => {},
       ),
     );
 
@@ -851,7 +812,6 @@ describe('useGeminiStream', () => {
       expect(mockSendMessageStream).toHaveBeenCalledWith(
         toolCallResponseParts,
         expect.any(AbortSignal),
-        'prompt-id-4',
       );
     });
 
@@ -1064,7 +1024,6 @@ describe('useGeminiStream', () => {
           name: 'save_memory',
           args: { fact: 'test' },
           isClientInitiated: true,
-          prompt_id: 'prompt-id-6',
         },
         status: 'success',
         responseSubmittedToGemini: false,
@@ -1104,8 +1063,6 @@ describe('useGeminiStream', () => {
           () => 'vscode' as EditorType,
           () => {},
           mockPerformMemoryRefresh,
-          false,
-          () => {},
         ),
       );
 
@@ -1140,7 +1097,6 @@ describe('useGeminiStream', () => {
         getContentGeneratorConfig: vi.fn(() => ({
           authType: mockAuthType,
         })),
-        getModel: vi.fn(() => 'gemini-2.5-pro'),
       } as unknown as Config;
 
       const { result } = renderHook(() =>
@@ -1156,8 +1112,6 @@ describe('useGeminiStream', () => {
           () => 'vscode' as EditorType,
           () => {},
           () => Promise.resolve(),
-          false,
-          () => {},
         ),
       );
 
@@ -1171,9 +1125,6 @@ describe('useGeminiStream', () => {
         expect(mockParseAndFormatApiError).toHaveBeenCalledWith(
           'Rate limit exceeded',
           mockAuthType,
-          undefined,
-          'gemini-2.5-pro',
-          'gemini-2.5-flash',
         );
       });
     });

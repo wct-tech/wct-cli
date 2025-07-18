@@ -16,7 +16,7 @@ import {
   DEFAULT_ENCODING,
   getSpecificMimeType,
 } from '../utils/fileUtils.js';
-import { PartListUnion, Schema, Type } from '@google/genai';
+import { PartListUnion } from '@google/genai';
 import { Config } from '../config/config.js';
 import {
   recordFileOperationMetric,
@@ -124,57 +124,54 @@ export class ReadManyFilesTool extends BaseTool<
   ToolResult
 > {
   static readonly Name: string = 'read_many_files';
-
   private readonly geminiIgnorePatterns: string[] = [];
 
-  constructor(private config: Config) {
-    const parameterSchema: Schema = {
-      type: Type.OBJECT,
+  /**
+   * Creates an instance of ReadManyFilesTool.
+   * @param targetDir The absolute root directory within which this tool is allowed to operate.
+   * All paths provided in `params` will be resolved relative to this directory.
+   */
+  constructor(
+    readonly targetDir: string,
+    private config: Config,
+  ) {
+    const parameterSchema: Record<string, unknown> = {
+      type: 'object',
       properties: {
         paths: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-            minLength: '1',
-          },
-          minItems: '1',
+          type: 'array',
+          items: { type: 'string' },
           description:
             "Required. An array of glob patterns or paths relative to the tool's target directory. Examples: ['src/**/*.ts'], ['README.md', 'docs/']",
         },
         include: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-            minLength: '1',
-          },
+          type: 'array',
+          items: { type: 'string' },
           description:
             'Optional. Additional glob patterns to include. These are merged with `paths`. Example: ["*.test.ts"] to specifically add test files if they were broadly excluded.',
           default: [],
         },
         exclude: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.STRING,
-            minLength: '1',
-          },
+          type: 'array',
+          items: { type: 'string' },
           description:
             'Optional. Glob patterns for files/directories to exclude. Added to default excludes if useDefaultExcludes is true. Example: ["**/*.log", "temp/"]',
           default: [],
         },
         recursive: {
-          type: Type.BOOLEAN,
+          type: 'boolean',
           description:
             'Optional. Whether to search recursively (primarily controlled by `**` in glob patterns). Defaults to true.',
           default: true,
         },
         useDefaultExcludes: {
-          type: Type.BOOLEAN,
+          type: 'boolean',
           description:
             'Optional. Whether to apply a list of default exclusion patterns (e.g., node_modules, .git, binary files). Defaults to true.',
           default: true,
         },
         respect_git_ignore: {
-          type: Type.BOOLEAN,
+          type: 'boolean',
           description:
             'Optional. Whether to respect .gitignore patterns when discovering files. Only available in git repositories. Defaults to true.',
           default: true,
@@ -198,22 +195,61 @@ This tool is useful when you need to understand or analyze a collection of files
 Use this tool when the user's query implies needing the content of several files simultaneously for context, analysis, or summarization. For text files, it uses default UTF-8 encoding and a '--- {filePath} ---' separator between file contents. Ensure paths are relative to the target directory. Glob patterns like 'src/**/*.js' are supported. Avoid using for single files if a more specific single-file reading tool is available, unless the user specifically requests to process a list containing just one file via this tool. Other binary files (not explicitly requested as image/PDF) are generally skipped. Default excludes apply to common non-text files (except for explicitly requested images/PDFs) and large dependency directories unless 'useDefaultExcludes' is false.`,
       parameterSchema,
     );
+    this.targetDir = path.resolve(targetDir);
     this.geminiIgnorePatterns = config
       .getFileService()
       .getGeminiIgnorePatterns();
   }
 
   validateParams(params: ReadManyFilesParams): string | null {
-    const errors = SchemaValidator.validate(this.schema.parameters, params);
-    if (errors) {
-      return errors;
+    if (
+      !params.paths ||
+      !Array.isArray(params.paths) ||
+      params.paths.length === 0
+    ) {
+      return 'The "paths" parameter is required and must be a non-empty array of strings/glob patterns.';
+    }
+    if (
+      this.schema.parameters &&
+      !SchemaValidator.validate(
+        this.schema.parameters as Record<string, unknown>,
+        params,
+      )
+    ) {
+      if (
+        !params.paths ||
+        !Array.isArray(params.paths) ||
+        params.paths.length === 0
+      ) {
+        return 'The "paths" parameter is required and must be a non-empty array of strings/glob patterns.';
+      }
+      return 'Parameters failed schema validation. Ensure "paths" is a non-empty array and other parameters match their expected types.';
+    }
+    for (const p of params.paths) {
+      if (typeof p !== 'string' || p.trim() === '') {
+        return 'Each item in "paths" must be a non-empty string/glob pattern.';
+      }
+    }
+    if (
+      params.include &&
+      (!Array.isArray(params.include) ||
+        !params.include.every((item) => typeof item === 'string'))
+    ) {
+      return 'If provided, "include" must be an array of strings/glob patterns.';
+    }
+    if (
+      params.exclude &&
+      (!Array.isArray(params.exclude) ||
+        !params.exclude.every((item) => typeof item === 'string'))
+    ) {
+      return 'If provided, "exclude" must be an array of strings/glob patterns.';
     }
     return null;
   }
 
   getDescription(params: ReadManyFilesParams): string {
     const allPatterns = [...params.paths, ...(params.include || [])];
-    const pathDesc = `using patterns: \`${allPatterns.join('`, `')}\` (within target directory: \`${this.config.getTargetDir()}\`)`;
+    const pathDesc = `using patterns: \`${allPatterns.join('`, `')}\` (within target directory: \`${this.targetDir}\`)`;
 
     // Determine the final list of exclusion patterns exactly as in execute method
     const paramExcludes = params.exclude || [];
@@ -265,6 +301,7 @@ Use this tool when the user's query implies needing the content of several files
     // Get centralized file discovery service
     const fileDiscovery = this.config.getFileService();
 
+    const toolBaseDir = this.targetDir;
     const filesToConsider = new Set<string>();
     const skippedFiles: Array<{ path: string; reason: string }> = [];
     const processedFilesRelativePaths: string[] = [];
@@ -284,7 +321,7 @@ Use this tool when the user's query implies needing the content of several files
 
     try {
       const entries = await glob(searchPatterns, {
-        cwd: this.config.getTargetDir(),
+        cwd: toolBaseDir,
         ignore: effectiveExcludes,
         nodir: true,
         dot: true,
@@ -296,21 +333,21 @@ Use this tool when the user's query implies needing the content of several files
       const filteredEntries = respectGitIgnore
         ? fileDiscovery
             .filterFiles(
-              entries.map((p) => path.relative(this.config.getTargetDir(), p)),
+              entries.map((p) => path.relative(toolBaseDir, p)),
               {
                 respectGitIgnore,
               },
             )
-            .map((p) => path.resolve(this.config.getTargetDir(), p))
+            .map((p) => path.resolve(toolBaseDir, p))
         : entries;
 
       let gitIgnoredCount = 0;
       for (const absoluteFilePath of entries) {
         // Security check: ensure the glob library didn't return something outside targetDir.
-        if (!absoluteFilePath.startsWith(this.config.getTargetDir())) {
+        if (!absoluteFilePath.startsWith(toolBaseDir)) {
           skippedFiles.push({
             path: absoluteFilePath,
-            reason: `Security: Glob library returned path outside target directory. Base: ${this.config.getTargetDir()}, Path: ${absoluteFilePath}`,
+            reason: `Security: Glob library returned path outside target directory. Base: ${toolBaseDir}, Path: ${absoluteFilePath}`,
           });
           continue;
         }
@@ -342,7 +379,7 @@ Use this tool when the user's query implies needing the content of several files
 
     for (const filePath of sortedFiles) {
       const relativePathForDisplay = path
-        .relative(this.config.getTargetDir(), filePath)
+        .relative(toolBaseDir, filePath)
         .replace(/\\/g, '/');
 
       const fileType = detectFileType(filePath);
@@ -369,7 +406,7 @@ Use this tool when the user's query implies needing the content of several files
       // Use processSingleFileContent for all file types now
       const fileReadResult = await processSingleFileContent(
         filePath,
-        this.config.getTargetDir(),
+        toolBaseDir,
       );
 
       if (fileReadResult.error) {
@@ -381,7 +418,7 @@ Use this tool when the user's query implies needing the content of several files
         if (typeof fileReadResult.llmContent === 'string') {
           const separator = DEFAULT_OUTPUT_SEPARATOR_FORMAT.replace(
             '{filePath}',
-            filePath,
+            relativePathForDisplay,
           );
           contentParts.push(`${separator}\n\n${fileReadResult.llmContent}\n\n`);
         } else {
@@ -403,7 +440,7 @@ Use this tool when the user's query implies needing the content of several files
       }
     }
 
-    let displayMessage = `### ReadManyFiles Result (Target Dir: \`${this.config.getTargetDir()}\`)\n\n`;
+    let displayMessage = `### ReadManyFiles Result (Target Dir: \`${this.targetDir}\`)\n\n`;
     if (processedFilesRelativePaths.length > 0) {
       displayMessage += `Successfully read and concatenated content from **${processedFilesRelativePaths.length} file(s)**.\n`;
       if (processedFilesRelativePaths.length <= 10) {

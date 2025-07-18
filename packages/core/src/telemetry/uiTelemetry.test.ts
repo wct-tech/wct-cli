@@ -36,7 +36,6 @@ const createFakeCompletedToolCall = (
     name,
     args: { foo: 'bar' },
     isClientInitiated: false,
-    prompt_id: 'prompt-id-1',
   };
 
   if (success) {

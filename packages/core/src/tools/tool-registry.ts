@@ -164,7 +164,6 @@ export class ToolRegistry {
       this.config.getMcpServers() ?? {},
       this.config.getMcpServerCommand(),
       this,
-      this.config.getDebugMode(),
     );
   }
 
@@ -308,9 +307,7 @@ export class ToolRegistry {
    * Returns an array of all registered and discovered tool instances.
    */
   getAllTools(): Tool[] {
-    return Array.from(this.tools.values()).sort((a, b) =>
-      a.displayName.localeCompare(b.displayName),
-    );
+    return Array.from(this.tools.values());
   }
 
   /**
@@ -323,7 +320,7 @@ export class ToolRegistry {
         serverTools.push(tool);
       }
     }
-    return serverTools.sort((a, b) => a.name.localeCompare(b.name));
+    return serverTools;
   }
 
   /**

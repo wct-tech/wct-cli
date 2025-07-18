@@ -6,8 +6,6 @@
 .gemini/
 !gemini/config.yaml
 
-# Note: .gemini-clipboard/ is NOT in gitignore so Gemini can access pasted images
-
 # Dependency directory
 node_modules
 bower_components
@@ -38,4 +36,7 @@ packages/*/coverage/
 # Generated files
 packages/cli/src/generated/
 .integration-tests/
-packages/vscode-ide-companion/*.vsix
+packages/core/LICENSE
+packages/cli/LICENSE
+packages/cli/README.md
+packages/core/README.md

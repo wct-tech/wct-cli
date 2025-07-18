@@ -7,7 +7,7 @@
 import React from 'react';
 import { render } from 'ink';
 import { AppWrapper } from './ui/App.js';
-import { loadCliConfig, parseArguments, CliArgs } from './config/config.js';
+import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { basename } from 'node:path';
 import v8 from 'node:v8';
@@ -17,16 +17,15 @@ import { start_sandbox } from './utils/sandbox.js';
 import {
   LoadedSettings,
   loadSettings,
-  USER_SETTINGS_PATH,
   SettingScope,
+  USER_SETTINGS_PATH,
 } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { getUserStartupWarnings } from './utils/userStartupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadExtensions, Extension } from './config/extension.js';
-import { cleanupCheckpoints, registerCleanup } from './utils/cleanup.js';
-import { getCliVersion } from './utils/version.js';
+import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
@@ -36,7 +35,6 @@ import {
   sessionId,
   logUserPrompt,
   AuthType,
-  getOauthClient,
 } from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
@@ -102,33 +100,18 @@ export async function main() {
     process.exit(1);
   }
 
-  const argv = await parseArguments();
   const extensions = loadExtensions(workspaceRoot);
-  const config = await loadCliConfig(
-    settings.merged,
-    extensions,
-    sessionId,
-    argv,
-  );
+  const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
-  if (argv.promptInteractive && !process.stdin.isTTY) {
-    console.error(
-      'Error: The --prompt-interactive flag is not supported when piping input from stdin.',
-    );
-    process.exit(1);
-  }
-
-  if (config.getListExtensions()) {
-    console.log('Installed extensions:');
-    for (const extension of extensions) {
-      console.log(`- ${extension.config.name}`);
-    }
-    process.exit(0);
-  }
-
-  // Set a default auth type if one isn't set.
+  // Set a default auth type if one isn't set for a couple of known cases.
   if (!settings.merged.selectedAuthType) {
-    if (process.env.CLOUD_SHELL === 'true') {
+    if (process.env.GEMINI_API_KEY) {
+      settings.setValue(
+        SettingScope.User,
+        'selectedAuthType',
+        AuthType.USE_GEMINI,
+      );
+    } else if (process.env.CLOUD_SHELL === 'true') {
       settings.setValue(
         SettingScope.User,
         'selectedAuthType',
@@ -136,11 +119,7 @@ export async function main() {
       );
     }
   }
-  settings.setValue(
-    SettingScope.User,
-    'selectedAuthType',
-    AuthType.USE_IWHALECLOUD,
-  );
+
   setMaxSizedBoxDebugging(config.getDebugMode());
 
   await config.initialize();
@@ -184,41 +163,25 @@ export async function main() {
       }
     }
   }
-
-  if (
-    settings.merged.selectedAuthType === AuthType.LOGIN_WITH_GOOGLE &&
-    config.getNoBrowser()
-  ) {
-    // Do oauth before app renders to make copying the link possible.
-    await getOauthClient(settings.merged.selectedAuthType, config);
-  }
-
   let input = config.getQuestion();
   const startupWarnings = [
     ...(await getStartupWarnings()),
     ...(await getUserStartupWarnings(workspaceRoot)),
   ];
 
-  const shouldBeInteractive =
-    !!argv.promptInteractive || (process.stdin.isTTY && input?.length === 0);
-
   // Render UI, passing necessary config values. Check that there is no command line question.
-  if (shouldBeInteractive) {
-    const version = await getCliVersion();
+  if (process.stdin.isTTY && input?.length === 0) {
     setWindowTitle(basename(workspaceRoot), settings);
-    const instance = render(
+    render(
       <React.StrictMode>
         <AppWrapper
           config={config}
           settings={settings}
           startupWarnings={startupWarnings}
-          version={version}
         />
       </React.StrictMode>,
       { exitOnCtrlC: false },
     );
-
-    registerCleanup(() => instance.unmount());
     return;
   }
   // If not a TTY, read from stdin
@@ -231,13 +194,10 @@ export async function main() {
     process.exit(1);
   }
 
-  const prompt_id = Math.random().toString(16).slice(2);
   logUserPrompt(config, {
     'event.name': 'user_prompt',
     'event.timestamp': new Date().toISOString(),
     prompt: input,
-    prompt_id,
-    auth_type: config.getContentGeneratorConfig()?.authType,
     prompt_length: input.length,
   });
 
@@ -246,21 +206,15 @@ export async function main() {
     config,
     extensions,
     settings,
-    argv,
   );
 
-  await runNonInteractive(nonInteractiveConfig, input, prompt_id);
+  await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
 }
 
 function setWindowTitle(title: string, settings: LoadedSettings) {
   if (!settings.merged.hideWindowTitle) {
-    const windowTitle = (process.env.CLI_TITLE || `Gemini - ${title}`).replace(
-      // eslint-disable-next-line no-control-regex
-      /[\x00-\x1F\x7F]/g,
-      '',
-    );
-    process.stdout.write(`\x1b]2;${windowTitle}\x07`);
+    process.stdout.write(`\x1b]2; Gemini - ${title} \x07`);
 
     process.on('exit', () => {
       process.stdout.write(`\x1b]2;\x07`);
@@ -287,7 +241,6 @@ async function loadNonInteractiveConfig(
   config: Config,
   extensions: Extension[],
   settings: LoadedSettings,
-  argv: CliArgs,
 ) {
   let finalConfig = config;
   if (config.getApprovalMode() !== ApprovalMode.YOLO) {
@@ -311,9 +264,7 @@ async function loadNonInteractiveConfig(
       nonInteractiveSettings,
       extensions,
       config.getSessionId(),
-      argv,
     );
-    await finalConfig.initialize();
   }
 
   return await validateNonInterActiveAuth(

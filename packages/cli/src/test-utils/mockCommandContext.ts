@@ -44,8 +44,6 @@ export const createMockCommandContext = (
       addItem: vi.fn(),
       clear: vi.fn(),
       setDebugMessage: vi.fn(),
-      pendingItem: null,
-      setPendingItem: vi.fn(),
     },
     session: {
       stats: {
@@ -76,13 +74,15 @@ export const createMockCommandContext = (
         const targetValue = output[key];
 
         if (
-          // We only want to recursivlty merge plain objects
-          Object.prototype.toString.call(sourceValue) === '[object Object]' &&
-          Object.prototype.toString.call(targetValue) === '[object Object]'
+          sourceValue &&
+          typeof sourceValue === 'object' &&
+          !Array.isArray(sourceValue) &&
+          targetValue &&
+          typeof targetValue === 'object' &&
+          !Array.isArray(targetValue)
         ) {
           output[key] = merge(targetValue, sourceValue);
         } else {
-          // If not, we do a direct assignment. This preserves Date objects and others.
           output[key] = sourceValue;
         }
       }
