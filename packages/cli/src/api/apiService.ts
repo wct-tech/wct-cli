@@ -26,6 +26,7 @@ import {
   getErrorMessage,
   UnauthorizedError,
   CompletedToolCall,
+  ApprovalMode,
 } from '@wct-cli/wct-cli-core';
 import { GenerateContentConfig, PartListUnion } from '@google/genai';
 import * as path from 'path';
@@ -61,6 +62,7 @@ const DEFAULT_CONFIG = {
   debugMode: false,
   model: 'gemini-2.5-pro', // 默认模型
   cwd: process.cwd(),
+  approvalMode: ApprovalMode.YOLO
 };
 
 // 创建配置对象，支持自定义项目路径
@@ -87,7 +89,7 @@ function createConfig(projectPath?: string, model?: string): Config {
 function executeToolWithTimeout(
   scheduler: CoreToolScheduler, 
   toolCallRequests: ToolCallRequestInfo[], 
-  abortSignal: AbortSignal,
+  abortController: AbortController,
   timeoutMs: number = 60000
 ): Promise<{
   status: string;
@@ -98,10 +100,12 @@ function executeToolWithTimeout(
     const timeoutId = setTimeout(() => {
       console.warn(`工具执行超时，已运行 ${timeoutMs}ms`);
       reject(new Error(`工具执行超时，已运行 ${timeoutMs}ms`));
+      abortController.abort();
     }, timeoutMs);
     
     // 启动工具执行
-    scheduler.schedule(toolCallRequests, abortSignal);
+    scheduler.schedule(toolCallRequests, abortController.signal);
+    
     
     // 替换完成回调
     const originalOnComplete = scheduler['onAllToolCallsComplete'];
@@ -375,7 +379,7 @@ function debugModelSelection(model: string, config: Config): void {
 async function submitQuery(
   query: PartListUnion,
   sessionId: string,
-  abortSignal: AbortSignal,
+  abortController: AbortController,
   config: Config,
   apiKey?: string,
 ): Promise<string> {
@@ -394,7 +398,7 @@ async function submitQuery(
     return '';
   }
   try {
-    const stream = geminiClient.sendMessageStream(queryToSend, abortSignal);
+    const stream = geminiClient.sendMessageStream(queryToSend, abortController.signal);
     const { content, toolCallRequests } = await processGeminiStreamEvents(
       stream,
       sessionId,
@@ -403,11 +407,11 @@ async function submitQuery(
       console.log(`Session ${sessionId}: 调度 ${toolCallRequests.length} 个工具调用`);
       
       // 使用超时处理函数执行工具
-      const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortSignal);
+      const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortController);
       
       const toolResponse = await handleCompletedTools(completedTools);
       if (toolResponse) {
-        const finalStream = geminiClient.sendMessageStream(toolResponse, abortSignal);
+        const finalStream = geminiClient.sendMessageStream(toolResponse, abortController.signal);
         const finalResult = await processGeminiStreamEvents(finalStream, sessionId);
         return finalResult.content || content;
       }
@@ -455,7 +459,7 @@ function startHeartbeat(res: Response, intervalMs: number = 15000): { stop: () =
 async function streamGeminiToClient(
   userMessage: string,
   sessionId: string,
-  abortSignal: AbortSignal,
+  abortController: AbortController,
   res: Response,
   model: string,
   config: Config,
@@ -492,7 +496,7 @@ async function streamGeminiToClient(
         // 尝试发送消息流，捕获可能的token计算错误
         let stream;
         try {
-          stream = geminiClient.sendMessageStream(currentQuery, abortSignal);
+          stream = geminiClient.sendMessageStream(currentQuery, abortController.signal);
         } catch (streamError) {
           // 如果是token计算错误，记录并尝试不进行压缩的方式再次发送
           if (streamError instanceof Error && 
@@ -501,7 +505,7 @@ async function streamGeminiToClient(
             console.warn(`[streamGeminiToClient] Token计算错误，尝试不进行压缩: ${streamError.message}`);
             
             // 尝试直接发送请求，不进行压缩处理
-            stream = geminiClient.sendMessageStream(currentQuery, abortSignal);
+            stream = geminiClient.sendMessageStream(currentQuery, abortController.signal);
           } else {
             // 其他错误则重新抛出
             throw streamError;
@@ -510,7 +514,11 @@ async function streamGeminiToClient(
         
         for await (const event of stream) {
           if ('value' in event) {
-            console.log(`Session ${sessionId}: Gemini event:`, event.type, typeof event.value);
+            if (event.type === 'content') {
+              console.log(`Session ${sessionId}: Gemini event:`, event.type, typeof event.value);
+            } else{
+              console.log(`Session ${sessionId}: Gemini event:`, event.type, event.value);
+            }
           } else {
             console.log(`Session ${sessionId}: Gemini event:`, event.type);
           }
@@ -595,7 +603,7 @@ async function streamGeminiToClient(
           res.write(`data: ${JSON.stringify(toolExecutionChunk)}\n\n`);
           
           // 使用超时处理函数执行工具
-          const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortSignal);
+          const completedTools = await executeToolWithTimeout(scheduler, toolCallRequests, abortController);
           
           const completedAndReadyToSubmitTools = completedTools.filter(
             (tc) => {
@@ -727,8 +735,8 @@ function validateModel(modelName: string): string {
 app.post('/v1/chat/completions', (req: Request, res: Response) => {
   (async () => {
     const abortController = new AbortController();
-    const abortSignal = abortController.signal;
-    
+    // const abortSignal = abortController.signal;
+
     // 请求超时处理
     const requestTimeout = setTimeout(() => {
       abortController.abort();
@@ -814,7 +822,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
         try {
-          await streamGeminiToClient(userMessage, sessionId, abortSignal, res, validatedModel, currentConfig, finalApiKey);
+          await streamGeminiToClient(userMessage, sessionId, abortController, res, validatedModel, currentConfig, finalApiKey);
           console.log('响应: [流式传输完成]');
         } catch (streamErr) {
           console.error('流式传输错误:', streamErr);
@@ -832,7 +840,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       } else {
         // 非流式（现有行为）
         try {
-          const responseText = await submitQuery(userMessage, sessionId, abortSignal, currentConfig, finalApiKey);
+          const responseText = await submitQuery(userMessage, sessionId, abortController, currentConfig, finalApiKey);
           const contentString = typeof responseText === 'string' ? responseText : JSON.stringify(responseText);
           const responseObj = {
             id: `chatcmpl-${Date.now()}`,
