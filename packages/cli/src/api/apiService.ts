@@ -113,7 +113,8 @@ function executeToolWithTimeout(
       tools: CompletedToolCall[], // type定义
     ) => {
       clearTimeout(timeoutId);
-      console.log(`所有工具执行完成，共 ${tools.length} 个`);
+      const toolNames = tools.map((tool) => tool.request.name).join(', ');
+      console.log(`工具调用 [${toolNames}] 已完成`);
       originalOnComplete?.(tools);
       resolve(tools);
     };

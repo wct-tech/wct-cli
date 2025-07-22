@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -78,8 +78,5 @@
     "typescript-eslint": "^8.30.1",
     "vitest": "^3.2.4",
     "yargs": "^17.7.2"
-  },
-  "dependencies": {
-    "@wct-cli/wct-cli": "^0.0.6"
   }
 }
