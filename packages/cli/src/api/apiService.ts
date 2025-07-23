@@ -62,7 +62,7 @@ const DEFAULT_CONFIG = {
   debugMode: false,
   model: 'gemini-2.5-pro', // 默认模型
   cwd: process.cwd(),
-  approvalMode: ApprovalMode.YOLO
+  approvalMode: ApprovalMode.YOLO,
 };
 
 // 创建配置对象，支持自定义项目路径
@@ -124,6 +124,7 @@ function executeToolWithTimeout(
 // 初始化默认配置
 const globalConfig = createConfig();
 await globalConfig.initialize();
+globalConfig.setFlashFallbackHandler(async()=>true);
 
 // 初始化工具注册表
 const toolRegistryPromise = globalConfig.getToolRegistry();
@@ -773,6 +774,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       
       const currentConfig = createConfig(project_path, validatedModel);
       await currentConfig.initialize();
+      currentConfig.setFlashFallbackHandler(async()=>true);
       if (project_path) {
         console.log(`使用自定义项目路径: ${project_path}`);
         await currentConfig.refreshAuth(AuthType.USE_IWHALECLOUD);

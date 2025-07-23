@@ -105,6 +105,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           part.functionResponse !== undefined &&
           typeof part.functionResponse.id === 'string' &&
           typeof part.functionResponse.name === 'string' &&
+          part.functionResponse.name.length > 0 && // fix 400 问题
           part.functionResponse.response !== undefined &&
           (typeof part.functionResponse.response.output === 'string' ||
             typeof part.functionResponse.response.error === 'string'),
@@ -118,12 +119,14 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               : part.functionResponse.response.output,
           )
           .join('\n');
-        messages.push({
-          tool_call_id: functionResponseParts[0].functionResponse.id,
-          role: 'tool',
-          name: functionResponseParts[0]?.functionResponse.name || 'unknown_function',
-          content: combinedText
-        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
+        messages.concat(  // fix 400 问题
+          functionResponseParts.map(part=>({
+            tool_call_id: part?.functionResponse?.id || `${Math.random()}-unknown_function`.slice(3),
+            role: 'tool',
+            name: part?.functionResponse?.name || 'unknown_function',
+            content: combinedText
+          }))
+        )
       }
       const functionCallParts = parts.filter(
         (
@@ -198,7 +201,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           content: {
             parts: choice.message.tool_calls.map((toolCall) => ({
               functionCall: {
-                name: toolCall.function.name,
+                name: toolCall.function.name || 'unknown_function', // fix 400问题
                 args: JSON.parse(jsonrepair(toolCall.function.arguments)),
               },
             })),
