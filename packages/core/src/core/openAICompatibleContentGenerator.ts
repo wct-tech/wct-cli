@@ -119,14 +119,12 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               : part.functionResponse.response.output,
           )
           .join('\n');
-        messages.concat(  // fix 400 问题
-          functionResponseParts.map(part=>({
-            tool_call_id: part?.functionResponse?.id || `${Math.random()}-unknown_function`.slice(3),
+        messages.push({
+            tool_call_id: functionResponseParts?.[0]?.functionResponse?.id,
             role: 'tool',
-            name: part?.functionResponse?.name || 'unknown_function',
+            name: functionResponseParts?.[0]?.functionResponse?.name || 'unknown_function',
             content: combinedText
-          }))
-        )
+          } as OpenAI.Chat.Completions.ChatCompletionMessageParam)
       }
       const functionCallParts = parts.filter(
         (
