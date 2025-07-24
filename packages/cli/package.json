@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.16",
+  "version": "0.0.18",
   "description": "wct CLI",
   "repository": {
     "type": "git",
@@ -30,8 +30,7 @@
   },
   "dependencies": {
     "@types/update-notifier": "^6.0.8",
-    "@wct-cli/wct-cli": "file:",
-    "@wct-cli/wct-cli-core": "^0.0.16",
+    "@wct-cli/wct-cli-core": "^0.0.18",
     "command-exists": "^1.2.9",
     "cors": "^2.8.5",
     "diff": "^7.0.0",

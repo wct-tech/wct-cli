@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.16",
+  "version": "0.0.18",
   "engines": {
     "node": ">=20.0.0"
   },
