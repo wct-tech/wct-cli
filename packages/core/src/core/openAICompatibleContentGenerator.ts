@@ -69,7 +69,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     contents: Content[],
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-    for (const content of contents) {
+    for (const [index, content] of contents.entries()) {
       const role =
         content.role === 'model'
           ? 'assistant'
@@ -144,11 +144,18 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         if (role === 'user') {
           throw new Error('Function calls cannot come from user role');
         }
+        
+        // fix 400 error
+        let tool_id = undefined;
+        if (index +1 < contents.length) {
+          tool_id = contents[index + 1].parts?.[0]?.functionResponse?.id || '';
+        }
         messages.push({
           role: 'assistant', // Force assistant role for tool calls
-          content: null,
+          content: 'tool_call', // fix 400 error
           tool_calls: functionCallParts.map((part) => ({
-            id: `call_${Math.random().toString(36).slice(2)}`,
+            // id: `call_${Math.random().toString(36).slice(2)}`,
+            id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
             type: 'function',
             function: {
               name: part.functionCall.name,
