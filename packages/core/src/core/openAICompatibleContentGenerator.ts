@@ -17,7 +17,8 @@ import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
 export function baseURL(): string {
-  return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+  return 'https://lab.iwhalecloud.com/gpt-proxy';
+  // return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
 }
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -68,7 +69,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     contents: Content[],
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-    for (const content of contents) {
+    for (const [index, content] of contents.entries()) {
       const role =
         content.role === 'model'
           ? 'assistant'
@@ -104,6 +105,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           part.functionResponse !== undefined &&
           typeof part.functionResponse.id === 'string' &&
           typeof part.functionResponse.name === 'string' &&
+          part.functionResponse.name.length > 0 &&
           part.functionResponse.response !== undefined &&
           (typeof part.functionResponse.response.output === 'string' ||
             typeof part.functionResponse.response.error === 'string'),
@@ -121,8 +123,9 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         messages.push({
           tool_call_id,
           role: 'tool',
+          name: functionResponseParts?.[0]?.functionResponse?.name || 'unknown_function',
           content: combinedText,
-        });
+        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
       }
       const functionCallParts = parts.filter(
         (
@@ -142,14 +145,23 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         if (role === 'user') {
           throw new Error('Function calls cannot come from user role');
         }
+        let tool_id = undefined;
+        if (index + 1 < contents.length) {
+          tool_id = (contents[index + 1].parts as unknown as Array<{functionResponse: {
+            id: string;
+            name: string;
+            response: { output?: string; error?: string };
+          } }>)?.[0]?.functionResponse?.id || '';
+        }
         messages.push({
           role: 'assistant', // Force assistant role for tool calls
-          content: null,
+          content: 'tool_call',
           tool_calls: functionCallParts.map((part) => ({
-            id: `call_${Math.random().toString(36).slice(2)}`,
+            // id: `call_${Math.random().toString(36).slice(2)}`,
+            id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
             type: 'function',
             function: {
-              name: part.functionCall.name,
+              name: part?.functionCall?.name || 'unknown_function',
               arguments: JSON.stringify(part.functionCall.args),
             },
           })),
