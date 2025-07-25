@@ -61,7 +61,7 @@ import {
   AuthType,
   type OpenFiles,
   ideContext,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
@@ -80,7 +80,7 @@ import {
   isProQuotaExceededError,
   isGenericQuotaExceededError,
   UserTierId,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';

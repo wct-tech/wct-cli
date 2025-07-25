@@ -5,17 +5,17 @@
  */
 
 export function isSiliconFlow(): boolean {
-  return !!(!process.env.CI || process.env.SILICONFLOW_API_KEY);
+  return !!(!process.env.CI || process.env.WCT_API_KEY);
 }
 
 export const DEFAULT_MODEL = isSiliconFlow()
-  ? 'deepseek-ai/DeepSeek-V3'
+  ? 'gemini-2.5-pro'
   : 'gemini-2.5-pro';
 export const DEFAULT_FLASH_MODEL = isSiliconFlow()
-  ? 'deepseek-ai/DeepSeek-V3'
+  ? 'gemini-2.5-flash'
   : 'gemini-2.5-flash';
 export const DEFAULT_EMBEDDING_MODEL = isSiliconFlow()
-  ? 'Qwen/Qwen3-Embedding-8B'
+  ? 'qwen3-embedding-0.6b'
   : 'gemini-embedding-001';
 
 export const DEFAULT_GEMINI_MODEL = DEFAULT_MODEL;

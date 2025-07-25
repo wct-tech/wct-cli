@@ -65,9 +65,9 @@ async function renamePackageReferences() {
       const pkg = JSON.parse(content);
 
       if ((pkg.name as string).endsWith('core')) {
-        pkg.name = '@gen-cli/gen-cli-core';
+        pkg.name = '@wct-cli/wct-cli-core';
       } else if ((pkg.name as string).endsWith('cli')) {
-        pkg.name = '@gen-cli/gen-cli';
+        pkg.name = '@wct-cli/wct-cli';
         if (pkg.main && pkg.main != pkg.bin.gemini) {
           throw 'require main to be the same as bin';
         }
@@ -99,10 +99,10 @@ async function renamePackageReferences() {
 
     for (const file of files.concat('package-lock.json')) {
       const content = await fs.readFile(file);
-      if (content.includes('@google/gemini-cli')) {
+      if (content.includes('@wct-cli/wct-cli')) {
         const newContent = content
-          .replace(/@google\/gemini-cli-core/g, '@gen-cli/gen-cli-core')
-          .replace(/@google\/gemini-cli/g, '@gen-cli/gen-cli');
+          .replace(/@google\/gemini-cli-core/g, '@wct-cli/wct-cli-core')
+          .replace(/@google\/gemini-cli/g, '@wct-cli/wct-cli');
         await fs.writeFile(file, newContent);
         changesMade++;
         console.log(`Updated references in ${file}`);

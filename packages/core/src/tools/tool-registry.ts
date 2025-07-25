@@ -169,7 +169,6 @@ export class ToolRegistry {
       this.config.getMcpServers() ?? {},
       this.config.getMcpServerCommand(),
       this,
-      this.config.getDebugMode(),
     );
   }
 
@@ -192,7 +191,6 @@ export class ToolRegistry {
         { [serverName]: serverConfig },
         undefined,
         this,
-        this.config.getDebugMode(),
       );
     }
   }

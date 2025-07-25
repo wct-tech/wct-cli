@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getErrorMessage } from '@google/gemini-cli-core';
+import { getErrorMessage } from '@wct-cli/wct-cli-core';
 import { MessageType } from '../types.js';
 import {
   CommandKind,

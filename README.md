@@ -20,14 +20,14 @@ forked from [Google Gemini CLI](https://github.com/google-gemini/gemini-cli)
    Or install it with:
 
    ```bash
-   npm install -g @gen-cli/gen-cli
+   npm install -g @wct-cli/wct-cli
    gen
    ```
 
    Add nightly tag to include latest patches.
 
    ```bash
-   npm install -g @gen-cli/gen-cli@nightly
+   npm install -g @wct-cli/wct-cli@nightly
    gen
    ```
 
@@ -87,7 +87,7 @@ You have two options to install Gemini CLI.
    Or install it with:
 
    ```bash
-   npm install -g @google/gemini-cli
+   npm install -g @wct-cli/wct-cli
    ```
 
    Then, run the CLI from anywhere:

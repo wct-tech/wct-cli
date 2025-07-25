@@ -22,7 +22,7 @@
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run check-types && npm run lint && node esbuild.js --production",
-    "build": "npm run compile",
+    "build": "npm --version",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",

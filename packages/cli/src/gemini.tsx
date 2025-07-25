@@ -36,7 +36,7 @@ import {
   logUserPrompt,
   AuthType,
   getOauthClient,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { validateNonInteractiveAuth } from './validateNonInterActiveAuth.js';
@@ -140,7 +140,7 @@ export async function main() {
   settings.setValue(
     SettingScope.User,
     'selectedAuthType',
-    AuthType.USE_SILICONFLOW,
+    AuthType.USE_IWHALECLOUD,
   );
   setMaxSizedBoxDebugging(config.getDebugMode());
 

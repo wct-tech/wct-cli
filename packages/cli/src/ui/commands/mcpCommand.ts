@@ -17,9 +17,8 @@ import {
   getMCPServerStatus,
   MCPDiscoveryState,
   MCPServerStatus,
-  mcpServerRequiresOAuth,
   getErrorMessage,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import open from 'open';
 
 const COLOR_GREEN = '\u001b[32m';
@@ -133,13 +132,14 @@ const getMcpStatus = async (
     // Format server header with bold formatting and status
     message += `${statusIndicator} \u001b[1m${serverDisplayName}\u001b[0m - ${statusText}`;
 
-    let needsAuthHint = mcpServerRequiresOAuth.get(serverName) || false;
+    // let needsAuthHint = mcpServerRequiresOAuth.get(serverName) || false;
+    let needsAuthHint =false;
     // Add OAuth status if applicable
     if (server?.oauth?.enabled) {
       needsAuthHint = true;
       try {
         const { MCPOAuthTokenStorage } = await import(
-          '@google/gemini-cli-core'
+          '@wct-cli/wct-cli-core'
         );
         const hasToken = await MCPOAuthTokenStorage.getToken(serverName);
         if (hasToken) {
@@ -326,7 +326,7 @@ const authCommand: SlashCommand = {
       );
 
       // Import dynamically to avoid circular dependencies
-      const { MCPOAuthProvider } = await import('@google/gemini-cli-core');
+      const { MCPOAuthProvider } = await import('@wct-cli/wct-cli-core');
 
       // Create OAuth config for authentication (will be discovered automatically)
       const oauthConfig = server.oauth || {

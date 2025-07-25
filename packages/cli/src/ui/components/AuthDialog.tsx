@@ -9,7 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType, isSiliconFlow } from '@google/gemini-cli-core';
+import { AuthType, isSiliconFlow } from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 
 interface AuthDialogProps {
@@ -22,7 +22,7 @@ function parseDefaultAuthType(
   defaultAuthType: string | undefined,
 ): AuthType | null {
   if (isSiliconFlow()) {
-    return AuthType.USE_SILICONFLOW;
+    return AuthType.USE_IWHALECLOUD;
   }
   if (
     defaultAuthType &&
@@ -63,7 +63,7 @@ export function AuthDialog({
     return null;
   });
   const SiliconFlowItems = [
-    { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
+    { label: 'iwhalecloud API Key', value: AuthType.USE_IWHALECLOUD },
   ];
   const items = isSiliconFlow()
     ? SiliconFlowItems

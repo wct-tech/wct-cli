@@ -251,7 +251,7 @@ export class Config {
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
     this.telemetrySettings = {
-      enabled: params.telemetry?.enabled ?? false,
+      enabled: false,
       target: params.telemetry?.target ?? DEFAULT_TELEMETRY_TARGET,
       otlpEndpoint: params.telemetry?.otlpEndpoint ?? DEFAULT_OTLP_ENDPOINT,
       logPrompts: params.telemetry?.logPrompts ?? true,
@@ -522,7 +522,8 @@ export class Config {
   }
 
   getUsageStatisticsEnabled(): boolean {
-    return this.usageStatisticsEnabled;
+    return false;
+    // return this.usageStatisticsEnabled;
   }
 
   getExtensionContextFilePaths(): string[] {

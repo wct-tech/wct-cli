@@ -12,7 +12,7 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import {
   HistoryItem,
   IndividualToolCallDisplay,

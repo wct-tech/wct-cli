@@ -21,7 +21,7 @@ import {
   FileFilteringOptions,
   MCPServerConfig,
   IDE_SERVER_NAME,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { Settings } from './settings.js';
 
 import { Extension, annotateActiveExtensions } from './extension.js';
