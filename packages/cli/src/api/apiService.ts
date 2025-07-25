@@ -700,31 +700,32 @@ async function streamGeminiToClient(
 }
 
 // 添加API连接状态检查
-// async function checkApiConnection(): Promise<boolean> {
-//   if (!process.env.OPENAI_API_URL) {
-//     return false;
-//   }
+async function checkApiConnection(apiKey?: string): Promise<boolean> {
+  if (!process.env.OPENAI_API_URL) {
+    return false;
+  }
   
-//   try {
-//     const response = await fetch(`${process.env.OPENAI_API_URL}/`, {
-//       method: 'GET',
-//       headers: {
-//         'Content-Type': 'application/json'
-//       }
-//     });
+  try {
+    const response = await fetch(`${process.env.OPENAI_API_URL}/models`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey || process.env.WCT_API_KEY}`,
+      }
+    });
     
-//     if (response.ok) {
-//       console.log('API服务器连接正常');
-//       return true;
-//     } else {
-//       console.warn(`API服务器连接异常: ${response.status} ${response.statusText}`);
-//       return false;
-//     }
-//   } catch (error) {
-//     console.error('API服务器连接检查失败:', error);
-//     return false;
-//   }
-// }
+    if (response.ok) {
+      console.log('API服务器连接正常');
+      return true;
+    } else {
+      console.warn(`API服务器连接异常: ${response.status} ${response.statusText}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('API服务器连接检查失败:', error);
+    return false;
+  }
+}
 
 // 验证模型名称
 function validateModel(modelName: string): string {
@@ -762,10 +763,10 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       }
       
       // 检查API连接状态
-      // const apiConnected = await checkApiConnection();
-      // if (!apiConnected) {
-      //   console.warn('API服务器连接不可用，可能导致请求失败');
-      // }
+      const apiConnected = await checkApiConnection(finalApiKey);
+      if (!apiConnected) {
+        console.warn('API服务器连接不可用，可能导致请求失败');
+      }
       
       // 记录并验证模型选择
       const requestedModel = model || DEFAULT_CONFIG.model;
