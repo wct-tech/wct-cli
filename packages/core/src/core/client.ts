@@ -43,7 +43,7 @@ import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 import { jsonrepair } from 'jsonrepair';
 import { LoopDetectionService } from '../services/loopDetectionService.js';
-import { ideContext } from '../services/ideContext.js';
+import { ideContext } from '../ide/ideContext.js';
 import { logFlashDecidedToContinue } from '../telemetry/loggers.js';
 import { FlashDecidedToContinueEvent } from '../telemetry/types.js';
 
