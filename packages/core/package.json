@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli-core",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "wct CLI Core",
   "repository": {
     "type": "git",
