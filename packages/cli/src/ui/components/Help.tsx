@@ -103,15 +103,9 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        Alt+Left/Right
+        Enter
       </Text>{' '}
-      - Jump through words in the input
-    </Text>
-    <Text color={Colors.Foreground}>
-      <Text bold color={Colors.AccentPurple}>
-        Ctrl+C
-      </Text>{' '}
-      - Quit application
+      - Send message
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
@@ -123,33 +117,15 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        Ctrl+L
+        Up/Down
       </Text>{' '}
-      - Clear the screen
+      - Cycle through your prompt history
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        {process.platform === 'darwin' ? 'Ctrl+X / Meta+Enter' : 'Ctrl+X'}
+        Alt+Left/Right
       </Text>{' '}
-      - Open input in external editor
-    </Text>
-    <Text color={Colors.Foreground}>
-      <Text bold color={Colors.AccentPurple}>
-        Ctrl+Y
-      </Text>{' '}
-      - Toggle YOLO mode
-    </Text>
-    <Text color={Colors.Foreground}>
-      <Text bold color={Colors.AccentPurple}>
-        Enter
-      </Text>{' '}
-      - Send message
-    </Text>
-    <Text color={Colors.Foreground}>
-      <Text bold color={Colors.AccentPurple}>
-        Esc
-      </Text>{' '}
-      - Cancel operation
+      - Jump through words in the input
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
@@ -159,16 +135,21 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        Up/Down
+        Ctrl+Y
       </Text>{' '}
-      - Cycle through your prompt history
+      - Toggle YOLO mode
     </Text>
-    <Box height={1} />
     <Text color={Colors.Foreground}>
-      For a full list of shortcuts, see{' '}
       <Text bold color={Colors.AccentPurple}>
-        docs/keyboard-shortcuts.md
-      </Text>
+        Esc
+      </Text>{' '}
+      - Cancel operation
+    </Text>
+    <Text color={Colors.Foreground}>
+      <Text bold color={Colors.AccentPurple}>
+        Ctrl+C
+      </Text>{' '}
+      - Quit application
     </Text>
   </Box>
 );

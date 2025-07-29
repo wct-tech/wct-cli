@@ -5,7 +5,14 @@
  */
 
 import { fileURLToPath } from 'url';
-import { Config, IDEConnectionStatus } from '@wct-cli/wct-cli-core';
+import {
+  Config,
+  getMCPDiscoveryState,
+  getMCPServerStatus,
+  IDE_SERVER_NAME,
+  MCPDiscoveryState,
+  MCPServerStatus,
+} from '@wct-cli/wct-cli-core';
 import {
   CommandContext,
   SlashCommand,
@@ -49,31 +56,36 @@ export const ideCommand = (config: Config | null): SlashCommand | null => {
         description: 'check status of IDE integration',
         kind: CommandKind.BUILT_IN,
         action: (_context: CommandContext): SlashCommandActionReturn => {
-          const connection = config.getIdeClient()?.getConnectionStatus();
-          switch (connection?.status) {
-            case IDEConnectionStatus.Connected:
+          const status = getMCPServerStatus(IDE_SERVER_NAME);
+          const discoveryState = getMCPDiscoveryState();
+          switch (status) {
+            case MCPServerStatus.CONNECTED:
               return {
                 type: 'message',
                 messageType: 'info',
                 content: `🟢 Connected`,
-              } as const;
-            case IDEConnectionStatus.Connecting:
+              };
+            case MCPServerStatus.CONNECTING:
               return {
                 type: 'message',
                 messageType: 'info',
-                content: `🟡 Connecting...`,
-              } as const;
-            default: {
-              let content = `🔴 Disconnected`;
-              if (connection?.details) {
-                content += `: ${connection.details}`;
+                content: `🔄 Initializing...`,
+              };
+            case MCPServerStatus.DISCONNECTED:
+            default:
+              if (discoveryState === MCPDiscoveryState.IN_PROGRESS) {
+                return {
+                  type: 'message',
+                  messageType: 'info',
+                  content: `🔄 Initializing...`,
+                };
+              } else {
+                return {
+                  type: 'message',
+                  messageType: 'error',
+                  content: `🔴 Disconnected`,
+                };
               }
-              return {
-                type: 'message',
-                messageType: 'error',
-                content,
-              } as const;
-            }
           }
         },
       },

@@ -20,8 +20,6 @@ export interface ColorsTheme {
   AccentGreen: string;
   AccentYellow: string;
   AccentRed: string;
-  DiffAdded: string;
-  DiffRemoved: string;
   Comment: string;
   Gray: string;
   GradientColors?: string[];
@@ -43,10 +41,8 @@ export const lightTheme: ColorsTheme = {
   AccentGreen: '#3CA84B',
   AccentYellow: '#D5A40A',
   AccentRed: '#DD4C4C',
-  DiffAdded: '#C6EAD8',
-  DiffRemoved: '#FFCCCC',
   Comment: '#008000',
-  Gray: '#97a0b0',
+  Gray: '#B7BECC',
   GradientColors: ['#4796E4', '#847ACE', '#C3677F'],
 };
 
@@ -61,8 +57,6 @@ export const darkTheme: ColorsTheme = {
   AccentGreen: '#A6E3A1',
   AccentYellow: '#F9E2AF',
   AccentRed: '#F38BA8',
-  DiffAdded: '#28350B',
-  DiffRemoved: '#430000',
   Comment: '#6C7086',
   Gray: '#6C7086',
   GradientColors: ['#4796E4', '#847ACE', '#C3677F'],
@@ -79,8 +73,6 @@ export const ansiTheme: ColorsTheme = {
   AccentGreen: 'green',
   AccentYellow: 'yellow',
   AccentRed: 'red',
-  DiffAdded: 'green',
-  DiffRemoved: 'red',
   Comment: 'gray',
   Gray: 'gray',
 };
@@ -323,7 +315,6 @@ export function createCustomTheme(customTheme: CustomTheme): Theme {
 export function validateCustomTheme(customTheme: Partial<CustomTheme>): {
   isValid: boolean;
   error?: string;
-  warning?: string;
 } {
   // Check required fields
   const requiredFields: Array<keyof CustomTheme> = [
@@ -337,15 +328,8 @@ export function validateCustomTheme(customTheme: Partial<CustomTheme>): {
     'AccentGreen',
     'AccentYellow',
     'AccentRed',
-    // 'DiffAdded' and 'DiffRemoved' are not required as they were added after
-    // the theme format was defined.
     'Comment',
     'Gray',
-  ];
-
-  const recommendedFields: Array<keyof CustomTheme> = [
-    'DiffAdded',
-    'DiffRemoved',
   ];
 
   for (const field of requiredFields) {
@@ -354,14 +338,6 @@ export function validateCustomTheme(customTheme: Partial<CustomTheme>): {
         isValid: false,
         error: `Missing required field: ${field}`,
       };
-    }
-  }
-
-  const missingFields: string[] = [];
-
-  for (const field of recommendedFields) {
-    if (!customTheme[field]) {
-      missingFields.push(field);
     }
   }
 
@@ -376,15 +352,13 @@ export function validateCustomTheme(customTheme: Partial<CustomTheme>): {
     'AccentGreen',
     'AccentYellow',
     'AccentRed',
-    'DiffAdded',
-    'DiffRemoved',
     'Comment',
     'Gray',
   ];
 
   for (const field of colorFields) {
-    const color = customTheme[field] as string | undefined;
-    if (color !== undefined && !isValidColor(color)) {
+    const color = customTheme[field] as string;
+    if (!isValidColor(color)) {
       return {
         isValid: false,
         error: `Invalid color format for ${field}: ${color}`,
@@ -400,13 +374,7 @@ export function validateCustomTheme(customTheme: Partial<CustomTheme>): {
     };
   }
 
-  return {
-    isValid: true,
-    warning:
-      missingFields.length > 0
-        ? `Missing field(s) ${missingFields.join(', ')}`
-        : undefined,
-  };
+  return { isValid: true };
 }
 
 /**

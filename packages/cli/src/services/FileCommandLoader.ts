@@ -19,7 +19,7 @@ import {
   CommandContext,
   CommandKind,
   SlashCommand,
-  SlashCommandActionReturn,
+  SubmitPromptActionReturn,
 } from '../ui/commands/types.js';
 import {
   DefaultArgumentProcessor,
@@ -28,12 +28,7 @@ import {
 import {
   IPromptProcessor,
   SHORTHAND_ARGS_PLACEHOLDER,
-  SHELL_INJECTION_TRIGGER,
 } from './prompt-processors/types.js';
-import {
-  ConfirmationRequiredError,
-  ShellProcessor,
-} from './prompt-processors/shellProcessor.js';
 
 /**
  * Defines the Zod schema for a command definition file. This serves as the
@@ -76,7 +71,6 @@ export class FileCommandLoader implements ICommandLoader {
       nodir: true,
       dot: true,
       signal,
-      follow: true,
     };
 
     try {
@@ -177,11 +171,6 @@ export class FileCommandLoader implements ICommandLoader {
 
     const processors: IPromptProcessor[] = [];
 
-    // Add the Shell Processor if needed.
-    if (validDef.prompt.includes(SHELL_INJECTION_TRIGGER)) {
-      processors.push(new ShellProcessor(commandName));
-    }
-
     // The presence of '{{args}}' is the switch that determines the behavior.
     if (validDef.prompt.includes(SHORTHAND_ARGS_PLACEHOLDER)) {
       processors.push(new ShorthandArgumentProcessor());
@@ -198,7 +187,7 @@ export class FileCommandLoader implements ICommandLoader {
       action: async (
         context: CommandContext,
         _args: string,
-      ): Promise<SlashCommandActionReturn> => {
+      ): Promise<SubmitPromptActionReturn> => {
         if (!context.invocation) {
           console.error(
             `[FileCommandLoader] Critical error: Command '${commandName}' was executed without invocation context.`,
@@ -209,31 +198,15 @@ export class FileCommandLoader implements ICommandLoader {
           };
         }
 
-        try {
-          let processedPrompt = validDef.prompt;
-          for (const processor of processors) {
-            processedPrompt = await processor.process(processedPrompt, context);
-          }
-
-          return {
-            type: 'submit_prompt',
-            content: processedPrompt,
-          };
-        } catch (e) {
-          // Check if it's our specific error type
-          if (e instanceof ConfirmationRequiredError) {
-            // Halt and request confirmation from the UI layer.
-            return {
-              type: 'confirm_shell_commands',
-              commandsToConfirm: e.commandsToConfirm,
-              originalInvocation: {
-                raw: context.invocation.raw,
-              },
-            };
-          }
-          // Re-throw other errors to be handled by the global error handler.
-          throw e;
+        let processedPrompt = validDef.prompt;
+        for (const processor of processors) {
+          processedPrompt = await processor.process(processedPrompt, context);
         }
+
+        return {
+          type: 'submit_prompt',
+          content: processedPrompt,
+        };
       },
     };
   }

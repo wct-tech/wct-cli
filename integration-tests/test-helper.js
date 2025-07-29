@@ -48,9 +48,7 @@ export class TestRig {
   }
 
   run(promptOrOptions, ...args) {
-    const m = process.env.SILICONFLOW_E2E_MODEL;
-    const mArg = m ? `--m ${m}` : '';
-    let command = `node ${this.bundlePath} --yolo ${mArg}`;
+    let command = `node ${this.bundlePath} --yolo --m Pro/deepseek-ai/DeepSeek-V3`;
     const execOptions = {
       cwd: this.testDir,
       encoding: 'utf-8',

@@ -35,8 +35,3 @@ export interface IPromptProcessor {
  * The placeholder string for shorthand argument injection in custom commands.
  */
 export const SHORTHAND_ARGS_PLACEHOLDER = '{{args}}';
-
-/**
- * The trigger string for shell command injection in custom commands.
- */
-export const SHELL_INJECTION_TRIGGER = '!{';

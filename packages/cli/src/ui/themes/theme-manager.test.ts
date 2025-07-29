@@ -23,12 +23,10 @@ const validCustomTheme: CustomTheme = {
   AccentPurple: '#8B5CF6',
   AccentCyan: '#06B6D4',
   AccentGreen: '#3CA84B',
-  AccentYellow: 'yellow',
-  AccentRed: 'red',
-  DiffAdded: 'green',
-  DiffRemoved: 'red',
-  Comment: 'gray',
-  Gray: 'gray',
+  AccentYellow: '#D5A40A',
+  AccentRed: '#DD4C4C',
+  Comment: '#008000',
+  Gray: '#B7BECC',
 };
 
 describe('ThemeManager', () => {

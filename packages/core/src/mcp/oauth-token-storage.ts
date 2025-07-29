@@ -28,7 +28,6 @@ export interface MCPOAuthCredentials {
   token: MCPOAuthToken;
   clientId?: string;
   tokenUrl?: string;
-  mcpServerUrl?: string;
   updatedAt: number;
 }
 
@@ -92,14 +91,12 @@ export class MCPOAuthTokenStorage {
    * @param token The OAuth token to save
    * @param clientId Optional client ID used for this token
    * @param tokenUrl Optional token URL used for this token
-   * @param mcpServerUrl Optional MCP server URL
    */
   static async saveToken(
     serverName: string,
     token: MCPOAuthToken,
     clientId?: string,
     tokenUrl?: string,
-    mcpServerUrl?: string,
   ): Promise<void> {
     await this.ensureConfigDir();
 
@@ -110,7 +107,6 @@ export class MCPOAuthTokenStorage {
       token,
       clientId,
       tokenUrl,
-      mcpServerUrl,
       updatedAt: Date.now(),
     };
 

@@ -4,13 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  useCallback,
-  useEffect,
-  useReducer,
-  useRef,
-  useTransition,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConsoleMessageItem } from '../types.js';
 
 export interface UseConsoleMessagesReturn {
@@ -19,90 +13,75 @@ export interface UseConsoleMessagesReturn {
   clearConsoleMessages: () => void;
 }
 
-type Action =
-  | { type: 'ADD_MESSAGES'; payload: ConsoleMessageItem[] }
-  | { type: 'CLEAR' };
+export function useConsoleMessages(): UseConsoleMessagesReturn {
+  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessageItem[]>(
+    [],
+  );
+  const messageQueueRef = useRef<ConsoleMessageItem[]>([]);
+  const messageQueueTimeoutRef = useRef<number | null>(null);
 
-function consoleMessagesReducer(
-  state: ConsoleMessageItem[],
-  action: Action,
-): ConsoleMessageItem[] {
-  switch (action.type) {
-    case 'ADD_MESSAGES': {
-      const newMessages = [...state];
-      for (const queuedMessage of action.payload) {
-        const lastMessage = newMessages[newMessages.length - 1];
+  const processMessageQueue = useCallback(() => {
+    if (messageQueueRef.current.length === 0) {
+      return;
+    }
+
+    const newMessagesToAdd = messageQueueRef.current;
+    messageQueueRef.current = [];
+
+    setConsoleMessages((prevMessages) => {
+      const newMessages = [...prevMessages];
+      newMessagesToAdd.forEach((queuedMessage) => {
         if (
-          lastMessage &&
-          lastMessage.type === queuedMessage.type &&
-          lastMessage.content === queuedMessage.content
+          newMessages.length > 0 &&
+          newMessages[newMessages.length - 1].type === queuedMessage.type &&
+          newMessages[newMessages.length - 1].content === queuedMessage.content
         ) {
-          // Create a new object for the last message to ensure React detects
-          // the change, preventing mutation of the existing state object.
-          newMessages[newMessages.length - 1] = {
-            ...lastMessage,
-            count: lastMessage.count + 1,
-          };
+          newMessages[newMessages.length - 1].count =
+            (newMessages[newMessages.length - 1].count || 1) + 1;
         } else {
           newMessages.push({ ...queuedMessage, count: 1 });
         }
-      }
-      return newMessages;
-    }
-    case 'CLEAR':
-      return [];
-    default:
-      return state;
-  }
-}
-
-export function useConsoleMessages(): UseConsoleMessagesReturn {
-  const [consoleMessages, dispatch] = useReducer(consoleMessagesReducer, []);
-  const messageQueueRef = useRef<ConsoleMessageItem[]>([]);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [, startTransition] = useTransition();
-
-  const processQueue = useCallback(() => {
-    if (messageQueueRef.current.length > 0) {
-      const messagesToProcess = messageQueueRef.current;
-      messageQueueRef.current = [];
-      startTransition(() => {
-        dispatch({ type: 'ADD_MESSAGES', payload: messagesToProcess });
       });
-    }
-    timeoutRef.current = null;
+      return newMessages;
+    });
+
+    messageQueueTimeoutRef.current = null; // Allow next scheduling
   }, []);
+
+  const scheduleQueueProcessing = useCallback(() => {
+    if (messageQueueTimeoutRef.current === null) {
+      messageQueueTimeoutRef.current = setTimeout(
+        processMessageQueue,
+        0,
+      ) as unknown as number;
+    }
+  }, [processMessageQueue]);
 
   const handleNewMessage = useCallback(
     (message: ConsoleMessageItem) => {
       messageQueueRef.current.push(message);
-      if (!timeoutRef.current) {
-        // Batch updates using a timeout. 16ms is a reasonable delay to batch
-        // rapid-fire messages without noticeable lag.
-        timeoutRef.current = setTimeout(processQueue, 16);
-      }
+      scheduleQueueProcessing();
     },
-    [processQueue],
+    [scheduleQueueProcessing],
   );
 
   const clearConsoleMessages = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    setConsoleMessages([]);
+    if (messageQueueTimeoutRef.current !== null) {
+      clearTimeout(messageQueueTimeoutRef.current);
+      messageQueueTimeoutRef.current = null;
     }
     messageQueueRef.current = [];
-    startTransition(() => {
-      dispatch({ type: 'CLEAR' });
-    });
   }, []);
 
-  // Cleanup on unmount
   useEffect(
-    () => () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
+    () =>
+      // Cleanup on unmount
+      () => {
+        if (messageQueueTimeoutRef.current !== null) {
+          clearTimeout(messageQueueTimeoutRef.current);
+        }
+      },
     [],
   );
 

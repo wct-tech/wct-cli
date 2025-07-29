@@ -256,13 +256,11 @@ export class LoopDetectedEvent {
   'event.name': 'loop_detected';
   'event.timestamp': string; // ISO 8601
   loop_type: LoopType;
-  prompt_id: string;
 
-  constructor(loop_type: LoopType, prompt_id: string) {
+  constructor(loop_type: LoopType) {
     this['event.name'] = 'loop_detected';
     this['event.timestamp'] = new Date().toISOString();
     this.loop_type = loop_type;
-    this.prompt_id = prompt_id;
   }
 }
 

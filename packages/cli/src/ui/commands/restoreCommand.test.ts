@@ -4,34 +4,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  Mocked,
+  Mock,
+} from 'vitest';
 import * as fs from 'fs/promises';
-import * as os from 'os';
-import * as path from 'path';
 import { restoreCommand } from './restoreCommand.js';
 import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { Config, GitService } from '@google/gemini-cli-core';
 
+vi.mock('fs/promises', () => ({
+  readdir: vi.fn(),
+  readFile: vi.fn(),
+  mkdir: vi.fn(),
+}));
+
 describe('restoreCommand', () => {
   let mockContext: CommandContext;
   let mockConfig: Config;
   let mockGitService: GitService;
+  const mockFsPromises = fs as Mocked<typeof fs>;
   let mockSetHistory: ReturnType<typeof vi.fn>;
-  let testRootDir: string;
-  let geminiTempDir: string;
-  let checkpointsDir: string;
 
-  beforeEach(async () => {
-    testRootDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), 'restore-command-test-'),
-    );
-    geminiTempDir = path.join(testRootDir, '.gemini');
-    checkpointsDir = path.join(geminiTempDir, 'checkpoints');
-    // The command itself creates this, but for tests it's easier to have it ready.
-    // Some tests might remove it to test error paths.
-    await fs.mkdir(checkpointsDir, { recursive: true });
-
+  beforeEach(() => {
     mockSetHistory = vi.fn().mockResolvedValue(undefined);
     mockGitService = {
       restoreProjectFromSnapshot: vi.fn().mockResolvedValue(undefined),
@@ -39,7 +41,7 @@ describe('restoreCommand', () => {
 
     mockConfig = {
       getCheckpointingEnabled: vi.fn().mockReturnValue(true),
-      getProjectTempDir: vi.fn().mockReturnValue(geminiTempDir),
+      getProjectTempDir: vi.fn().mockReturnValue('/tmp/gemini'),
       getGeminiClient: vi.fn().mockReturnValue({
         setHistory: mockSetHistory,
       }),
@@ -53,35 +55,31 @@ describe('restoreCommand', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     vi.restoreAllMocks();
-    await fs.rm(testRootDir, { recursive: true, force: true });
   });
 
   it('should return null if checkpointing is not enabled', () => {
-    vi.mocked(mockConfig.getCheckpointingEnabled).mockReturnValue(false);
-
-    expect(restoreCommand(mockConfig)).toBeNull();
+    (mockConfig.getCheckpointingEnabled as Mock).mockReturnValue(false);
+    const command = restoreCommand(mockConfig);
+    expect(command).toBeNull();
   });
 
   it('should return the command if checkpointing is enabled', () => {
-    expect(restoreCommand(mockConfig)).toEqual(
-      expect.objectContaining({
-        name: 'restore',
-        description: expect.any(String),
-        action: expect.any(Function),
-        completion: expect.any(Function),
-      }),
-    );
+    const command = restoreCommand(mockConfig);
+    expect(command).not.toBeNull();
+    expect(command?.name).toBe('restore');
+    expect(command?.description).toBeDefined();
+    expect(command?.action).toBeDefined();
+    expect(command?.completion).toBeDefined();
   });
 
   describe('action', () => {
     it('should return an error if temp dir is not found', async () => {
-      vi.mocked(mockConfig.getProjectTempDir).mockReturnValue('');
-
-      expect(
-        await restoreCommand(mockConfig)?.action?.(mockContext, ''),
-      ).toEqual({
+      (mockConfig.getProjectTempDir as Mock).mockReturnValue(undefined);
+      const command = restoreCommand(mockConfig);
+      const result = await command?.action?.(mockContext, '');
+      expect(result).toEqual({
         type: 'message',
         messageType: 'error',
         content: 'Could not determine the .gemini directory path.',
@@ -89,25 +87,31 @@ describe('restoreCommand', () => {
     });
 
     it('should inform when no checkpoints are found if no args are passed', async () => {
-      // Remove the directory to ensure the command creates it.
-      await fs.rm(checkpointsDir, { recursive: true, force: true });
+      mockFsPromises.readdir.mockResolvedValue([]);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.action?.(mockContext, '')).toEqual({
+      const result = await command?.action?.(mockContext, '');
+      expect(result).toEqual({
         type: 'message',
         messageType: 'info',
         content: 'No restorable tool calls found.',
       });
-      // Verify the directory was created by the command.
-      await expect(fs.stat(checkpointsDir)).resolves.toBeDefined();
+      expect(mockFsPromises.mkdir).toHaveBeenCalledWith(
+        '/tmp/gemini/checkpoints',
+        {
+          recursive: true,
+        },
+      );
     });
 
     it('should list available checkpoints if no args are passed', async () => {
-      await fs.writeFile(path.join(checkpointsDir, 'test1.json'), '{}');
-      await fs.writeFile(path.join(checkpointsDir, 'test2.json'), '{}');
+      mockFsPromises.readdir.mockResolvedValue([
+        'test1.json',
+        'test2.json',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.action?.(mockContext, '')).toEqual({
+      const result = await command?.action?.(mockContext, '');
+      expect(result).toEqual({
         type: 'message',
         messageType: 'info',
         content: 'Available tool calls to restore:\n\ntest1\ntest2',
@@ -115,10 +119,11 @@ describe('restoreCommand', () => {
     });
 
     it('should return an error if the specified file is not found', async () => {
-      await fs.writeFile(path.join(checkpointsDir, 'test1.json'), '{}');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockFsPromises.readdir.mockResolvedValue(['test1.json'] as any);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.action?.(mockContext, 'test2')).toEqual({
+      const result = await command?.action?.(mockContext, 'test2');
+      expect(result).toEqual({
         type: 'message',
         messageType: 'error',
         content: 'File not found: test2.json',
@@ -126,21 +131,16 @@ describe('restoreCommand', () => {
     });
 
     it('should handle file read errors gracefully', async () => {
-      const checkpointName = 'test1';
-      const checkpointPath = path.join(
-        checkpointsDir,
-        `${checkpointName}.json`,
-      );
-      // Create a directory instead of a file to cause a read error.
-      await fs.mkdir(checkpointPath);
+      const readError = new Error('Read failed');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockFsPromises.readdir.mockResolvedValue(['test1.json'] as any);
+      mockFsPromises.readFile.mockRejectedValue(readError);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.action?.(mockContext, checkpointName)).toEqual({
+      const result = await command?.action?.(mockContext, 'test1');
+      expect(result).toEqual({
         type: 'message',
         messageType: 'error',
-        content: expect.stringContaining(
-          'Could not read restorable tool calls.',
-        ),
+        content: `Could not read restorable tool calls. This is the error: ${readError}`,
       });
     });
 
@@ -151,21 +151,20 @@ describe('restoreCommand', () => {
         commitHash: 'abcdef123',
         toolCall: { name: 'run_shell_command', args: 'ls' },
       };
-      await fs.writeFile(
-        path.join(checkpointsDir, 'my-checkpoint.json'),
-        JSON.stringify(toolCallData),
-      );
-      const command = restoreCommand(mockConfig);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockFsPromises.readdir.mockResolvedValue(['my-checkpoint.json'] as any);
+      mockFsPromises.readFile.mockResolvedValue(JSON.stringify(toolCallData));
 
-      expect(await command?.action?.(mockContext, 'my-checkpoint')).toEqual({
-        type: 'tool',
-        toolName: 'run_shell_command',
-        toolArgs: 'ls',
-      });
+      const command = restoreCommand(mockConfig);
+      const result = await command?.action?.(mockContext, 'my-checkpoint');
+
+      // Check history restoration
       expect(mockContext.ui.loadHistory).toHaveBeenCalledWith(
         toolCallData.history,
       );
       expect(mockSetHistory).toHaveBeenCalledWith(toolCallData.clientHistory);
+
+      // Check git restoration
       expect(mockGitService.restoreProjectFromSnapshot).toHaveBeenCalledWith(
         toolCallData.commitHash,
       );
@@ -176,75 +175,63 @@ describe('restoreCommand', () => {
         },
         expect.any(Number),
       );
+
+      // Check returned action
+      expect(result).toEqual({
+        type: 'tool',
+        toolName: 'run_shell_command',
+        toolArgs: 'ls',
+      });
     });
 
     it('should restore even if only toolCall is present', async () => {
       const toolCallData = {
         toolCall: { name: 'run_shell_command', args: 'ls' },
       };
-      await fs.writeFile(
-        path.join(checkpointsDir, 'my-checkpoint.json'),
-        JSON.stringify(toolCallData),
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockFsPromises.readdir.mockResolvedValue(['my-checkpoint.json'] as any);
+      mockFsPromises.readFile.mockResolvedValue(JSON.stringify(toolCallData));
 
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.action?.(mockContext, 'my-checkpoint')).toEqual({
-        type: 'tool',
-        toolName: 'run_shell_command',
-        toolArgs: 'ls',
-      });
+      const result = await command?.action?.(mockContext, 'my-checkpoint');
 
       expect(mockContext.ui.loadHistory).not.toHaveBeenCalled();
       expect(mockSetHistory).not.toHaveBeenCalled();
       expect(mockGitService.restoreProjectFromSnapshot).not.toHaveBeenCalled();
-    });
-  });
 
-  it('should return an error for a checkpoint file missing the toolCall property', async () => {
-    const checkpointName = 'missing-toolcall';
-    await fs.writeFile(
-      path.join(checkpointsDir, `${checkpointName}.json`),
-      JSON.stringify({ history: [] }), // An object that is valid JSON but missing the 'toolCall' property
-    );
-    const command = restoreCommand(mockConfig);
-
-    expect(await command?.action?.(mockContext, checkpointName)).toEqual({
-      type: 'message',
-      messageType: 'error',
-      // A more specific error message would be ideal, but for now, we can assert the current behavior.
-      content: expect.stringContaining('Could not read restorable tool calls.'),
+      expect(result).toEqual({
+        type: 'tool',
+        toolName: 'run_shell_command',
+        toolArgs: 'ls',
+      });
     });
   });
 
   describe('completion', () => {
     it('should return an empty array if temp dir is not found', async () => {
-      vi.mocked(mockConfig.getProjectTempDir).mockReturnValue('');
+      (mockConfig.getProjectTempDir as Mock).mockReturnValue(undefined);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.completion?.(mockContext, '')).toEqual([]);
+      const result = await command?.completion?.(mockContext, '');
+      expect(result).toEqual([]);
     });
 
     it('should return an empty array on readdir error', async () => {
-      await fs.rm(checkpointsDir, { recursive: true, force: true });
+      mockFsPromises.readdir.mockRejectedValue(new Error('ENOENT'));
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.completion?.(mockContext, '')).toEqual([]);
+      const result = await command?.completion?.(mockContext, '');
+      expect(result).toEqual([]);
     });
 
     it('should return a list of checkpoint names', async () => {
-      await fs.writeFile(path.join(checkpointsDir, 'test1.json'), '{}');
-      await fs.writeFile(path.join(checkpointsDir, 'test2.json'), '{}');
-      await fs.writeFile(
-        path.join(checkpointsDir, 'not-a-checkpoint.txt'),
-        '{}',
-      );
+      mockFsPromises.readdir.mockResolvedValue([
+        'test1.json',
+        'test2.json',
+        'not-a-checkpoint.txt',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any);
       const command = restoreCommand(mockConfig);
-
-      expect(await command?.completion?.(mockContext, '')).toEqual([
-        'test1',
-        'test2',
-      ]);
+      const result = await command?.completion?.(mockContext, '');
+      expect(result).toEqual(['test1', 'test2']);
     });
   });
 });

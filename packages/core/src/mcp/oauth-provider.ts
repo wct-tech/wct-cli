@@ -272,13 +272,11 @@ export class MCPOAuthProvider {
    *
    * @param config OAuth configuration
    * @param pkceParams PKCE parameters
-   * @param mcpServerUrl The MCP server URL to use as the resource parameter
    * @returns The authorization URL
    */
   private static buildAuthorizationUrl(
     config: MCPOAuthConfig,
     pkceParams: PKCEParams,
-    mcpServerUrl?: string,
   ): string {
     const redirectUri =
       config.redirectUri ||
@@ -298,15 +296,10 @@ export class MCPOAuthProvider {
     }
 
     // Add resource parameter for MCP OAuth spec compliance
-    // Use the MCP server URL if provided, otherwise fall back to authorization URL
-    const resourceUrl = mcpServerUrl || config.authorizationUrl!;
-    try {
-      params.append('resource', OAuthUtils.buildResourceParameter(resourceUrl));
-    } catch (error) {
-      throw new Error(
-        `Invalid resource URL: "${resourceUrl}". ${getErrorMessage(error)}`,
-      );
-    }
+    params.append(
+      'resource',
+      OAuthUtils.buildResourceParameter(config.authorizationUrl!),
+    );
 
     return `${config.authorizationUrl}?${params.toString()}`;
   }
@@ -317,14 +310,12 @@ export class MCPOAuthProvider {
    * @param config OAuth configuration
    * @param code Authorization code
    * @param codeVerifier PKCE code verifier
-   * @param mcpServerUrl The MCP server URL to use as the resource parameter
    * @returns The token response
    */
   private static async exchangeCodeForToken(
     config: MCPOAuthConfig,
     code: string,
     codeVerifier: string,
-    mcpServerUrl?: string,
   ): Promise<OAuthTokenResponse> {
     const redirectUri =
       config.redirectUri ||
@@ -343,15 +334,10 @@ export class MCPOAuthProvider {
     }
 
     // Add resource parameter for MCP OAuth spec compliance
-    // Use the MCP server URL if provided, otherwise fall back to token URL
-    const resourceUrl = mcpServerUrl || config.tokenUrl!;
-    try {
-      params.append('resource', OAuthUtils.buildResourceParameter(resourceUrl));
-    } catch (error) {
-      throw new Error(
-        `Invalid resource URL: "${resourceUrl}". ${getErrorMessage(error)}`,
-      );
-    }
+    params.append(
+      'resource',
+      OAuthUtils.buildResourceParameter(config.tokenUrl!),
+    );
 
     const response = await fetch(config.tokenUrl!, {
       method: 'POST',
@@ -376,15 +362,12 @@ export class MCPOAuthProvider {
    *
    * @param config OAuth configuration
    * @param refreshToken The refresh token
-   * @param tokenUrl The token endpoint URL
-   * @param mcpServerUrl The MCP server URL to use as the resource parameter
    * @returns The new token response
    */
   static async refreshAccessToken(
     config: MCPOAuthConfig,
     refreshToken: string,
     tokenUrl: string,
-    mcpServerUrl?: string,
   ): Promise<OAuthTokenResponse> {
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
@@ -401,15 +384,7 @@ export class MCPOAuthProvider {
     }
 
     // Add resource parameter for MCP OAuth spec compliance
-    // Use the MCP server URL if provided, otherwise fall back to token URL
-    const resourceUrl = mcpServerUrl || tokenUrl;
-    try {
-      params.append('resource', OAuthUtils.buildResourceParameter(resourceUrl));
-    } catch (error) {
-      throw new Error(
-        `Invalid resource URL: "${resourceUrl}". ${getErrorMessage(error)}`,
-      );
-    }
+    params.append('resource', OAuthUtils.buildResourceParameter(tokenUrl));
 
     const response = await fetch(tokenUrl, {
       method: 'POST',
@@ -559,11 +534,7 @@ export class MCPOAuthProvider {
     const pkceParams = this.generatePKCEParams();
 
     // Build authorization URL
-    const authUrl = this.buildAuthorizationUrl(
-      config,
-      pkceParams,
-      mcpServerUrl,
-    );
+    const authUrl = this.buildAuthorizationUrl(config, pkceParams);
 
     console.log('\nOpening browser for OAuth authentication...');
     console.log('If the browser does not open, please visit:');
@@ -613,7 +584,6 @@ export class MCPOAuthProvider {
       config,
       code,
       pkceParams.codeVerifier,
-      mcpServerUrl,
     );
 
     // Convert to our token format
@@ -635,7 +605,6 @@ export class MCPOAuthProvider {
         token,
         config.clientId,
         config.tokenUrl,
-        mcpServerUrl,
       );
       console.log('Authentication successful! Token saved.');
 
@@ -695,7 +664,6 @@ export class MCPOAuthProvider {
           config,
           token.refreshToken,
           credentials.tokenUrl,
-          credentials.mcpServerUrl,
         );
 
         // Update stored token
@@ -715,7 +683,6 @@ export class MCPOAuthProvider {
           newToken,
           config.clientId,
           credentials.tokenUrl,
-          credentials.mcpServerUrl,
         );
 
         return newToken.accessToken;

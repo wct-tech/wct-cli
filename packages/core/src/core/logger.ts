@@ -238,12 +238,7 @@ export class Logger {
     if (!this.geminiDir) {
       throw new Error('Checkpoint file path not set.');
     }
-    // Sanitize tag to prevent directory traversal attacks
-    let sanitizedTag = tag.replace(/[^a-zA-Z0-9-_]/g, '');
-    if (!sanitizedTag) {
-      sanitizedTag = 'default';
-    }
-    return path.join(this.geminiDir, `checkpoint-${sanitizedTag}.json`);
+    return path.join(this.geminiDir, `checkpoint-${tag}.json`);
   }
 
   async saveCheckpoint(conversation: Content[], tag: string): Promise<void> {
@@ -282,31 +277,12 @@ export class Logger {
       return parsedContent as Content[];
     } catch (error) {
       console.error(`Failed to read or parse checkpoint file ${path}:`, error);
-      return [];
-    }
-  }
-
-  async deleteCheckpoint(tag: string): Promise<boolean> {
-    if (!this.initialized || !this.geminiDir) {
-      console.error(
-        'Logger not initialized or checkpoint file path not set. Cannot delete checkpoint.',
-      );
-      return false;
-    }
-
-    const path = this._checkpointPath(tag);
-
-    try {
-      await fs.unlink(path);
-      return true;
-    } catch (error) {
       const nodeError = error as NodeJS.ErrnoException;
       if (nodeError.code === 'ENOENT') {
-        // File doesn't exist, which is fine.
-        return false;
+        // File doesn't exist, which is fine. Return empty array.
+        return [];
       }
-      console.error(`Failed to delete checkpoint file ${path}:`, error);
-      throw error;
+      return [];
     }
   }
 

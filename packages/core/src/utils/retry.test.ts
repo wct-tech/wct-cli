@@ -6,8 +6,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { retryWithBackoff, HttpError } from './retry.js';
+import { retryWithBackoff } from './retry.js';
 import { setSimulate429 } from './testUtils.js';
+
+// Define an interface for the error with a status property
+interface HttpError extends Error {
+  status?: number;
+}
 
 // Helper to create a mock function that fails a certain number of times
 const createFailingFunction = (

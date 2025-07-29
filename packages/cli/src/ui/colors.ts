@@ -38,12 +38,6 @@ export const Colors: ColorsTheme = {
   get AccentRed() {
     return themeManager.getActiveTheme().colors.AccentRed;
   },
-  get DiffAdded() {
-    return themeManager.getActiveTheme().colors.DiffAdded;
-  },
-  get DiffRemoved() {
-    return themeManager.getActiveTheme().colors.DiffRemoved;
-  },
   get Comment() {
     return themeManager.getActiveTheme().colors.Comment;
   },

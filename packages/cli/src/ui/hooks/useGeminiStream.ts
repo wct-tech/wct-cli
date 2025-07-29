@@ -414,9 +414,8 @@ export const useGeminiStream = (
         userMessageTimestamp,
       );
       setIsResponding(false);
-      setThought(null); // Reset thought when user cancels
     },
-    [addItem, pendingHistoryItemRef, setPendingHistoryItem, setThought],
+    [addItem, pendingHistoryItemRef, setPendingHistoryItem],
   );
 
   const handleErrorEvent = useCallback(
@@ -438,9 +437,8 @@ export const useGeminiStream = (
         },
         userMessageTimestamp,
       );
-      setThought(null); // Reset thought when there's an error
     },
-    [addItem, pendingHistoryItemRef, setPendingHistoryItem, config, setThought],
+    [addItem, pendingHistoryItemRef, setPendingHistoryItem, config],
   );
 
   const handleFinishedEvent = useCallback(
@@ -639,7 +637,6 @@ export const useGeminiStream = (
 
       if (!options?.isContinuation) {
         startNewPrompt();
-        setThought(null); // Reset thought when starting a new prompt
       }
 
       setIsResponding(true);

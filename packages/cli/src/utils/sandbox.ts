@@ -525,14 +525,6 @@ export async function start_sandbox(
     );
   }
 
-  // copy GOOGLE_GENAI_USE_GCA
-  if (process.env.GOOGLE_GENAI_USE_GCA) {
-    args.push(
-      '--env',
-      `GOOGLE_GENAI_USE_GCA=${process.env.GOOGLE_GENAI_USE_GCA}`,
-    );
-  }
-
   // copy GOOGLE_CLOUD_PROJECT
   if (process.env.GOOGLE_CLOUD_PROJECT) {
     args.push(

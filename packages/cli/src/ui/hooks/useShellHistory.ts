@@ -12,13 +12,6 @@ import { isNodeError, getProjectTempDir } from '@wct-cli/wct-cli-core';
 const HISTORY_FILE = 'shell_history';
 const MAX_HISTORY_LENGTH = 100;
 
-export interface UseShellHistoryReturn {
-  addCommandToHistory: (command: string) => void;
-  getPreviousCommand: () => string | null;
-  getNextCommand: () => string | null;
-  resetHistoryPosition: () => void;
-}
-
 async function getHistoryFilePath(projectRoot: string): Promise<string> {
   const historyDir = getProjectTempDir(projectRoot);
   return path.join(historyDir, HISTORY_FILE);
@@ -49,7 +42,7 @@ async function writeHistoryFile(
   }
 }
 
-export function useShellHistory(projectRoot: string): UseShellHistoryReturn {
+export function useShellHistory(projectRoot: string) {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [historyFilePath, setHistoryFilePath] = useState<string | null>(null);
