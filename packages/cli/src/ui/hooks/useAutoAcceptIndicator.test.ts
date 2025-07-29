@@ -20,14 +20,14 @@ import {
   Config,
   Config as ActualConfigType,
   ApprovalMode,
-} from '@wct-cli/wct-cli-core';
+} from '@google/gemini-cli-core';
 import { useInput, type Key as InkKey } from 'ink';
 
 vi.mock('ink');
 
-vi.mock('@wct-cli/wct-cli-core', async () => {
+vi.mock('@google/gemini-cli-core', async () => {
   const actualServerModule = (await vi.importActual(
-    '@wct-cli/wct-cli-core',
+    '@google/gemini-cli-core',
   )) as Record<string, unknown>;
   return {
     ...actualServerModule,

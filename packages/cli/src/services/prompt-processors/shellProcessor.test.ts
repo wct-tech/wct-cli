@@ -8,12 +8,12 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ConfirmationRequiredError, ShellProcessor } from './shellProcessor.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { CommandContext } from '../../ui/commands/types.js';
-import { Config } from '@wct-cli/wct-cli-core';
+import { Config } from '@google/gemini-cli-core';
 
 const mockCheckCommandPermissions = vi.hoisted(() => vi.fn());
 const mockShellExecute = vi.hoisted(() => vi.fn());
 
-vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
+vi.mock('@google/gemini-cli-core', async (importOriginal) => {
   const original = await importOriginal<object>();
   return {
     ...original,

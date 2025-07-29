@@ -13,7 +13,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import { CommandContext, SlashCommand } from '../commands/types.js';
-import { Config, FileDiscoveryService } from '@wct-cli/wct-cli-core';
+import { Config, FileDiscoveryService } from '@google/gemini-cli-core';
 import { useTextBuffer, TextBuffer } from '../components/shared/text-buffer.js';
 
 describe('useCompletion', () => {

@@ -8,7 +8,7 @@ import {
   Config,
   getErrorMessage,
   getMCPServerPrompts,
-} from '@wct-cli/wct-cli-core';
+} from '@google/gemini-cli-core';
 import {
   CommandContext,
   CommandKind,

@@ -11,7 +11,7 @@ import {
   UserTierId,
   DEFAULT_GEMINI_FLASH_MODEL,
   isProQuotaExceededError,
-} from '@wct-cli/wct-cli-core';
+} from '@google/gemini-cli-core';
 
 describe('parseAndFormatApiError', () => {
   const _enterpriseMessage =

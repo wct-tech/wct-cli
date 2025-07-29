@@ -170,31 +170,6 @@ export class ToolRegistry {
       this.config.getMcpServers() ?? {},
       this.config.getMcpServerCommand(),
       this,
-      this.config.getPromptRegistry(),
-      this.config.getDebugMode(),
-    );
-  }
-
-  /**
-   * Discovers tools from project (if available and configured).
-   * Can be called multiple times to update discovered tools.
-   * This will NOT discover tools from the command line, only from MCP servers.
-   */
-  async discoverMcpTools(): Promise<void> {
-    // remove any previously discovered tools
-    for (const tool of this.tools.values()) {
-      if (tool instanceof DiscoveredMCPTool) {
-        this.tools.delete(tool.name);
-      }
-    }
-
-    // discover tools using MCP servers, if configured
-    await discoverMcpTools(
-      this.config.getMcpServers() ?? {},
-      this.config.getMcpServerCommand(),
-      this,
-      this.config.getPromptRegistry(),
-      this.config.getDebugMode(),
     );
   }
 
@@ -217,8 +192,6 @@ export class ToolRegistry {
         { [serverName]: serverConfig },
         undefined,
         this,
-        this.config.getPromptRegistry(),
-        this.config.getDebugMode(),
       );
     }
   }
