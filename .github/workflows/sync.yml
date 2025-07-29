@@ -38,9 +38,3 @@ jobs:
 
           # Set test_mode true to run tests instead of the true action!!
           test_mode: false
-
-      - name: Sync check
-        if: failure()
-        run: |
-          echo "[Error] Due to a change in the workflow file of the upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork"
-          exit 1
