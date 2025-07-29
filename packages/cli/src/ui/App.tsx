@@ -299,7 +299,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
 
       if (
         config.getContentGeneratorConfig().authType ===
-        AuthType.LOGIN_WITH_GOOGLE
+        AuthType.USE_IWHALECLOUD
       ) {
         // Use actual user tier if available; otherwise, default to FREE tier behavior (safe default)
         const isPaidTier =
