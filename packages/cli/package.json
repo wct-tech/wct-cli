@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Gemini CLI",
   "repository": {
     "type": "git",
@@ -9,7 +9,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gemini": "dist/index.js"
+    "wct-cli": "dist/index.js",
+    "wct-api": "dist/src/api/apiService.js"
   },
   "scripts": {
     "build": "node ../../scripts/build_package.js",
@@ -28,7 +29,7 @@
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.13"
   },
   "dependencies": {
-    "@wct-cli/wct-cli-core": "^0.0.21",
+    "@wct-cli/wct-cli-core": "^0.0.22",
     "@google/genai": "1.8.0",
     "@iarna/toml": "^2.2.5",
     "@types/update-notifier": "^6.0.8",
