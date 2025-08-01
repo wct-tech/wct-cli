@@ -39,3 +39,7 @@ jobs:
 
           # Set test_mode true to run tests instead of the true action!!
           test_mode: false
+  ci:
+    needs: [sync_latest_from_upstream]
+    name: Test latest merge with CI suite
+    uses: ./.github/workflows/ci.yml
