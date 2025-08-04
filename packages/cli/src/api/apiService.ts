@@ -61,7 +61,7 @@ const DEFAULT_CONFIG = {
   sessionId: 'api-service',
   targetDir: process.cwd(),
   debugMode: false,
-  model: 'gemini-2.5-pro', // 默认模型
+  model: 'gemini-2.5-flash', // 默认模型
   cwd: process.cwd(),
   approvalMode: ApprovalMode.YOLO,
 };
@@ -189,7 +189,7 @@ function getToolScheduler(sessionId: string, config: Config): CoreToolScheduler 
   let scheduler = toolSchedulers.get(schedulerKey);
   if (!scheduler) {
     scheduler = new CoreToolScheduler({
-      toolRegistry: toolRegistryPromise,
+      toolRegistry: config.getToolRegistry(), // 修复tool调用可以跳出当前目录的问题
       outputUpdateHandler: () => {}, // No live output for API
       onAllToolCallsComplete: (completedTools) => {
         // Handle completed tools - this will be called by the scheduler
