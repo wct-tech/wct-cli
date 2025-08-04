@@ -28,7 +28,7 @@ import { isSlashCommand } from '../utils/commandUtils.js';
 import { toCodePoints } from '../utils/textUtils.js';
 import { useCompletion } from './useCompletion.js';
 
-export interface UseSlashCompletionReturn {
+export interface UseCommandCompletionReturn {
   suggestions: Suggestion[];
   activeSuggestionIndex: number;
   visibleStartIndex: number;
@@ -43,7 +43,7 @@ export interface UseSlashCompletionReturn {
   handleAutocomplete: (indexToUse: number) => void;
 }
 
-export function useSlashCompletion(
+export function useCommandCompletion(
   buffer: TextBuffer,
   dirs: readonly string[],
   cwd: string,
@@ -51,7 +51,7 @@ export function useSlashCompletion(
   commandContext: CommandContext,
   reverseSearchActive: boolean = false,
   config?: Config,
-): UseSlashCompletionReturn {
+): UseCommandCompletionReturn {
   const {
     suggestions,
     activeSuggestionIndex,
@@ -111,7 +111,7 @@ export function useSlashCompletion(
 
   useEffect(() => {
     if (commandIndex === -1 || reverseSearchActive) {
-      resetCompletionState();
+      setTimeout(resetCompletionState, 0);
       return;
     }
 
@@ -631,17 +631,17 @@ export function useSlashCompletion(
         ) {
           suggestionText = ' ' + suggestionText;
         }
-        suggestionText += ' ';
       }
+
+      suggestionText += ' ';
 
       buffer.replaceRangeByOffset(
         logicalPosToOffset(buffer.lines, cursorRow, completionStart.current),
         logicalPosToOffset(buffer.lines, cursorRow, completionEnd.current),
         suggestionText,
       );
-      resetCompletionState();
     },
-    [cursorRow, resetCompletionState, buffer, suggestions, commandIndex],
+    [cursorRow, buffer, suggestions, commandIndex],
   );
 
   return {
