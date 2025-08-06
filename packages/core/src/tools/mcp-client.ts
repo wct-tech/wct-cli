@@ -16,6 +16,7 @@ import { MCPServerConfig } from '../config/config.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 import { CallableTool, FunctionDeclaration, mcpToTool } from '@google/genai';
 import { sanitizeParameters, ToolRegistry } from './tool-registry.js';
+import { Schema } from '@google/genai';
 
 export const MCP_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
 
@@ -342,12 +343,12 @@ async function connectAndDiscover(
           toolNameForModel.slice(0, 28) + '___' + toolNameForModel.slice(-32);
       }
 
-      sanitizeParameters(funcDecl.parameters);
+      sanitizeParameters(funcDecl?.parametersJsonSchema as Schema);
 
       // Ensure parameters is a valid JSON schema object, default to empty if not.
       const parameterSchema: Record<string, unknown> =
-        funcDecl.parameters && typeof funcDecl.parameters === 'object'
-          ? { ...(funcDecl.parameters as FunctionDeclaration) }
+        funcDecl.parametersJsonSchema && typeof funcDecl.parametersJsonSchema === 'object'
+          ? { ...(funcDecl.parametersJsonSchema as FunctionDeclaration) }
           : { type: 'object', properties: {} };
 
       toolRegistry.registerTool(
