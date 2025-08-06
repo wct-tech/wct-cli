@@ -1,7 +1,7 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.22",
-  "description": "Gemini CLI",
+  "version": "0.0.23",
+  "description": "wct cli",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gen-cli/gen-cli.git"
@@ -30,8 +30,8 @@
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.13"
   },
   "dependencies": {
-    "@wct-cli/wct-cli-core": "^0.0.22",
-    "@google/genai": "1.8.0",
+    "@wct-cli/wct-cli-core": "^0.0.23",
+    "@google/genai": "1.9.0",
     "@iarna/toml": "^2.2.5",
     "@types/update-notifier": "^6.0.8",
     "command-exists": "^1.2.9",
