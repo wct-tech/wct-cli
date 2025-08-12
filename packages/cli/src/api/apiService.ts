@@ -28,6 +28,7 @@ import {
   UnauthorizedError,
   CompletedToolCall,
   ApprovalMode,
+  ConfigParameters,
 } from '@wct-cli/wct-cli-core';
 import { GenerateContentConfig, PartListUnion } from '@google/genai';
 import * as path from 'path';
@@ -41,8 +42,9 @@ import cors from 'cors';
 // } from '@google/gemini-cli-core/src/utils/errors';
 // import { logUserPrompt } from '@google/gemini-cli-core/src/telemetry/loggers.js';
 // import { UserPromptEvent } from '@google/gemini-cli-core/src/telemetry/types.js';
-
+import { loadSettings } from '../config/settings.js';
 import { fileURLToPath } from 'url';
+import { loadCliConfig, parseArguments } from '../config/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,9 +57,12 @@ app.use(express.json());
 app.use(cors({
   origin: '*' // Explicitly allow 'null' origin
 }));
-
+const settings = loadSettings(process.cwd());
+const argv = await parseArguments();
+const configCli = await loadCliConfig(settings.merged, [], 'api-service', argv);
 // 默认配置
-const DEFAULT_CONFIG = {
+const DEFAULT_CONFIG:ConfigParameters = {
+  ...configCli,
   sessionId: 'api-service',
   targetDir: process.cwd(),
   debugMode: false,
