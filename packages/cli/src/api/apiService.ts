@@ -260,6 +260,14 @@ function parseAndFormatApiError(errorMessage: string): string {
   return String(errorMessage);
 }
 
+// 格式化错误为指定的格式 {errMessage, errDetail}
+function formatError(errMessage: string, errDetail?: unknown): { error_message: string; error_detail: unknown } {
+  return {
+    error_message: errMessage,
+    error_detail: errDetail || null
+  };
+}
+
 // 准备查询
 async function prepareQueryForGemini(
   query: PartListUnion,
@@ -488,7 +496,19 @@ async function streamGeminiToClient(
       config,
     );
     if (!shouldProceed || queryToSend === null) {
-      res.write(`data: ${JSON.stringify({ error: { message: "No query to send" } })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        id: `chatcmpl-${Date.now()}`,
+        object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model: model || DEFAULT_CONFIG.model,
+        choices: [
+          {
+            index: 0,
+            delta: { error: formatError('没有可发送的查询', new Error('No query to send')) },
+            finish_reason: "error",
+          },
+        ],
+      })}\n\n`);
       res.write('data: [DONE]\n\n');
       heartbeat.stop();
       res.end();
@@ -525,8 +545,9 @@ async function streamGeminiToClient(
           if ('value' in event) {
             if (event.type === 'content') {
               console.log(`Session ${sessionId}: Gemini event:`, event.type, typeof event.value);
-            } else{
-              console.log(`Session ${sessionId}: Gemini event:`, event.type, event.value);
+            } else if (event.type === 'error') {
+              console.log(`Session ${sessionId}: Gemini event:`, event.type);
+              console.log('evet vallue: ', event.value);
             }
           } else {
             console.log(`Session ${sessionId}: Gemini event:`, event.type);
@@ -557,15 +578,17 @@ async function streamGeminiToClient(
               }]
             };
             toolCallRequests.push(event.value);
+          } else if (event.type === 'error' && 'value' in event && event.value) {
+            delta = { error: formatError("核心方法调用出错", event.value)};
           } else if (event.type !== 'user_cancelled' && 'value' in event && event.value) {
             delta = { [event.type]: event.value };
-          }
+          } 
 
           const chunk = {
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             created: Math.floor(Date.now() / 1000),
-            model: model || 'gpt-4', // 保持模型名称一致性
+            model: model || DEFAULT_CONFIG.model, // 保持模型名称一致性
             choices: [
               {
                 index: 0,
@@ -600,7 +623,7 @@ async function streamGeminiToClient(
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             created: Math.floor(Date.now() / 1000),
-            model: model || 'gpt-4',
+            model: model || DEFAULT_CONFIG.model,
             choices: [
               {
                 index: 0,
@@ -643,7 +666,7 @@ async function streamGeminiToClient(
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             created: Math.floor(Date.now() / 1000),
-            model: model || 'gpt-4',
+            model: model || DEFAULT_CONFIG.model,
             choices: [
               {
                 index: 0,
@@ -661,11 +684,11 @@ async function streamGeminiToClient(
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             created: Math.floor(Date.now() / 1000),
-            model: model || 'gpt-4',
+            model: model || DEFAULT_CONFIG.model,
             choices: [
               {
                 index: 0,
-                delta: { error: errorMessage },
+                delta: { error: formatError(errorMessage, toolError) },
                 finish_reason: "tool_execution_error",
               },
             ],
@@ -686,7 +709,19 @@ async function streamGeminiToClient(
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
       }
-      res.write(`data: ${JSON.stringify({ error: { message: errorMessage } })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        id: `chatcmpl-${Date.now()}`,
+        object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model: model || DEFAULT_CONFIG.model,
+        choices: [
+          {
+            index: 0,
+            delta: { error: formatError(errorMessage, error) },
+            finish_reason: "error",
+          },
+        ],
+      })}\n\n`);
       res.write('data: [DONE]\n\n');
       heartbeat.stop();
       res.end();
@@ -699,7 +734,19 @@ async function streamGeminiToClient(
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
     }
-    res.write(`data: ${JSON.stringify({ error: { message: errorMessage } })}\n\n`);
+    res.write(`data: ${JSON.stringify({
+        id: `chatcmpl-${Date.now()}`,
+        object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model: model || DEFAULT_CONFIG.model,
+        choices: [
+          {
+            index: 0,
+            delta: { error: formatError(errorMessage, initError) },
+            finish_reason: "error",
+          },
+        ],
+      })}\n\n`);
     res.write('data: [DONE]\n\n');
     heartbeat.stop();
     res.end();
@@ -745,15 +792,28 @@ function validateModel(modelName: string): string {
 app.post('/v1/chat/completions', (req: Request, res: Response) => {
   (async () => {
     const abortController = new AbortController();
+    const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry } = req.body;
     // const abortSignal = abortController.signal;
 
     // 请求超时处理
     const requestTimeout = setTimeout(() => {
       abortController.abort();
       if (!res.headersSent) {
-        res.status(408).json({ error: { message: '请求处理超时' } });
+        res.status(408).json(formatError('请求处理超时', '请求处理超时'));
       } else if (!res.writableEnded) {
-        res.write(`data: ${JSON.stringify({ error: { message: '请求处理超时' } })}\n\n`);
+        res.write(`data: ${JSON.stringify({
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: model || DEFAULT_CONFIG.model,
+            choices: [
+              {
+                index: 0,
+                delta: { error: formatError('请求处理超时', new Error('请求处理超时')) },
+                finish_reason: "timeout",
+              },
+            ],
+          })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
       }
@@ -761,7 +821,6 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
     
     try {
       console.log('请求体:', JSON.stringify(req.body, null, 2));
-      const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry } = req.body;
       const apiKeyFromHeader = req.headers['x-api-key'] as string;
       const finalApiKey = apiKeyFromHeader || api_key;
 
@@ -802,9 +861,8 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       }
       
       if (!messages || !Array.isArray(messages)) {
-        const errorResp = { error: { message: '无效的消息数组' } };
-        console.error('响应:', errorResp);
-        return res.status(400).json(errorResp);
+        console.error('响应:', formatError('无效的消息数组', '无效的消息数组'));
+        return res.status(400).json(formatError('无效的消息数组', '无效的消息数组'));
       }
       const sessionId = session_id || 'default';
       const chatKey = `${sessionId}-${currentConfig.getTargetDir()}-${finalApiKey || ''}`;
@@ -821,9 +879,8 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       }
       const userMessage = messages[messages.length - 1]?.content;
       if (!userMessage) {
-        const errorResp = { error: { message: '未提供用户消息' } };
-        console.error('响应:', errorResp);
-        return res.status(400).json(errorResp);
+        console.error('响应:', formatError('未提供用户消息', '未提供用户消息'));
+        return res.status(400).json(formatError('未提供用户消息', '未提供用户消息'));
       }
 
       if (stream) {
@@ -838,12 +895,23 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
         } catch (streamErr) {
           console.error('流式传输错误:', streamErr);
           const errorMessage = streamErr instanceof Error ? streamErr.message : '内部服务器错误';
-          const errorResp = { error: { message: errorMessage } };
-          console.error('响应:', errorResp);
+          console.error('响应:', formatError('流式传输错误', errorMessage));
           if (!res.headersSent) {
-            res.status(500).json(errorResp);
+            res.status(500).json(formatError('流式传输错误', errorMessage));
           } else if (!res.writableEnded) {
-            res.write(`data: ${JSON.stringify(errorResp)}\n\n`);
+            res.write(`data: ${JSON.stringify({
+            id: `chatcmpl-${Date.now()}`,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: validatedModel,
+            choices: [
+              {
+                index: 0,
+                delta: { error: formatError('流式传输错误', streamErr) },
+                finish_reason: "error",
+              },
+            ],
+          })}\n\n`);
             res.write('data: [DONE]\n\n');
             res.end();
           }
@@ -873,10 +941,9 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
         } catch (nonStreamErr) {
           console.error('非流式响应错误:', nonStreamErr);
           const errorMessage = nonStreamErr instanceof Error ? nonStreamErr.message : '内部服务器错误';
-          const errorResp = { error: { message: errorMessage } };
-          console.error('响应:', errorResp);
+          console.error('响应:', formatError('非流式响应错误', errorMessage));
           if (!res.headersSent) {
-            return res.status(500).json(errorResp);
+            return res.status(500).json(formatError('非流式响应错误', errorMessage));
           } else if (!res.writableEnded) {
             res.end();
           }
@@ -885,10 +952,9 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
     } catch (err) {
       console.error('请求处理错误:', err);
       const errorMessage = err instanceof Error ? err.message : '内部服务器错误';
-      const errorResp = { error: { message: errorMessage } };
-      console.error('响应:', errorResp);
+      console.error('响应:', formatError('请求处理错误', errorMessage));
       if (!res.headersSent) {
-        return res.status(500).json(errorResp);
+        return res.status(500).json(formatError('请求处理错误', errorMessage));
       } else if (!res.writableEnded) {
         res.end();
       }
