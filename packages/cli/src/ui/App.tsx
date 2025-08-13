@@ -132,7 +132,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     registerCleanup(() => config.getIdeClient().disconnect());
   }, [config]);
   const shouldShowIdePrompt =
-    config.getIdeModeFeature() &&
     currentIDE &&
     !config.getIdeMode() &&
     !settings.merged.hasSeenIdeIntegrationNudge &&
@@ -578,14 +577,18 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
 
   const handleIdePromptComplete = useCallback(
     (result: IdeIntegrationNudgeResult) => {
-      if (result === 'yes') {
-        handleSlashCommand('/ide install');
+      if (result.userSelection === 'yes') {
+        if (result.isExtensionPreInstalled) {
+          handleSlashCommand('/ide enable');
+        } else {
+          handleSlashCommand('/ide install');
+        }
         settings.setValue(
           SettingScope.User,
           'hasSeenIdeIntegrationNudge',
           true,
         );
-      } else if (result === 'dismiss') {
+      } else if (result.userSelection === 'dismiss') {
         settings.setValue(
           SettingScope.User,
           'hasSeenIdeIntegrationNudge',
@@ -944,9 +947,9 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
             </Box>
           )}
 
-          {shouldShowIdePrompt ? (
+          {shouldShowIdePrompt && currentIDE ? (
             <IdeIntegrationNudge
-              ideName={config.getIdeClient().getDetectedIdeDisplayName()}
+              ide={currentIDE}
               onComplete={handleIdePromptComplete}
             />
           ) : isFolderTrustDialogOpen ? (
