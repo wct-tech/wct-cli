@@ -1,7 +1,7 @@
 {
   "name": "@wct-cli/wct-cli-core",
-  "version": "0.0.24",
-  "description": "Gemini CLI Core",
+  "version": "0.0.25",
+  "description": "wct-cli Core",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gen-cli/gen-cli.git"
