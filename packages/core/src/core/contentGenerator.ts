@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { OpenAICompatibleContentGenerator } from './openAICompatibleContentGenerator.js';
 import {
   CountTokensResponse,
   GenerateContentResponse,
@@ -16,8 +17,6 @@ import {
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
 import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { Config } from '../config/config.js';
-import { getEffectiveModel } from './modelCheck.js';
-import { OpenAICompatibleContentGenerator } from './openAICompatibleContentGenerator.js';
 import { UserTierId } from '../code_assist/types.js';
 import { LoggingContentGenerator } from './loggingContentGenerator.js';
 
@@ -87,11 +86,6 @@ export function createContentGeneratorConfig(
   if (authType === AuthType.USE_GEMINI && geminiApiKey) {
     contentGeneratorConfig.apiKey = geminiApiKey;
     contentGeneratorConfig.vertexai = false;
-    getEffectiveModel(
-      contentGeneratorConfig.apiKey,
-      contentGeneratorConfig.model,
-      contentGeneratorConfig.proxy,
-    );
 
     return contentGeneratorConfig;
   }

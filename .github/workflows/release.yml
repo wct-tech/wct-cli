@@ -47,6 +47,10 @@ jobs:
       RELEASE_TAG: '${{ steps.version.outputs.RELEASE_TAG }}'
 
     steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: 'Checkout'
         uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
         with:
