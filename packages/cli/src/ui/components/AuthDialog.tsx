@@ -155,7 +155,6 @@ export function AuthDialog({
           items={items}
           initialIndex={initialAuthIndex}
           onSelect={handleAuthSelect}
-          isFocused={true}
         />
       </Box>
       {errorMessage && (
