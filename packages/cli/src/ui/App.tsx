@@ -82,6 +82,7 @@ import { useTextBuffer } from './components/shared/text-buffer.js';
 import { useVimMode, VimModeProvider } from './contexts/VimModeContext.js';
 import { useVim } from './hooks/vim.js';
 import { useKeypress, Key } from './hooks/useKeypress.js';
+import { KeypressProvider } from './contexts/KeypressContext.js';
 import { useKittyKeyboardProtocol } from './hooks/useKittyKeyboardProtocol.js';
 import { keyMatchers, Command } from './keyMatchers.js';
 import * as fs from 'fs';
@@ -111,13 +112,21 @@ interface AppProps {
   version: string;
 }
 
-export const AppWrapper = (props: AppProps) => (
-  <SessionStatsProvider>
-    <VimModeProvider settings={props.settings}>
-      <App {...props} />
-    </VimModeProvider>
-  </SessionStatsProvider>
-);
+export const AppWrapper = (props: AppProps) => {
+  const kittyProtocolStatus = useKittyKeyboardProtocol();
+  return (
+    <KeypressProvider
+      kittyProtocolEnabled={kittyProtocolStatus.enabled}
+      config={props.config}
+    >
+      <SessionStatsProvider>
+        <VimModeProvider settings={props.settings}>
+          <App {...props} />
+        </VimModeProvider>
+      </SessionStatsProvider>
+    </KeypressProvider>
+  );
+};
 
 const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const isFocused = useFocus();
@@ -613,7 +622,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
   const showAutoAcceptIndicator = useAutoAcceptIndicator({ config });
-  const kittyProtocolStatus = useKittyKeyboardProtocol();
 
   const handleExit = useCallback(
     (
@@ -708,8 +716,6 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
 
   useKeypress(handleGlobalKeypress, {
     isActive: true,
-    kittyProtocolEnabled: kittyProtocolStatus.enabled,
-    config,
   });
 
   useEffect(() => {
@@ -972,6 +978,7 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
               {confirmationRequest.prompt}
               <Box paddingY={1}>
                 <RadioButtonSelect
+                  isFocused={!!confirmationRequest}
                   items={[
                     { label: 'Yes', value: true },
                     { label: 'No', value: false },
