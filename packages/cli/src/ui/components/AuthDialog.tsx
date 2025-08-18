@@ -45,18 +45,18 @@ export function AuthDialog({
     }
 
     const defaultAuthType = parseDefaultAuthType(
-      process.env.GEMINI_DEFAULT_AUTH_TYPE,
+      process.env['GEMINI_DEFAULT_AUTH_TYPE'],
     );
 
-    if (process.env.GEMINI_DEFAULT_AUTH_TYPE && defaultAuthType === null) {
+    if (process.env['GEMINI_DEFAULT_AUTH_TYPE'] && defaultAuthType === null) {
       return (
-        `Invalid value for GEMINI_DEFAULT_AUTH_TYPE: "${process.env.GEMINI_DEFAULT_AUTH_TYPE}". ` +
+        `Invalid value for GEMINI_DEFAULT_AUTH_TYPE: "${process.env['GEMINI_DEFAULT_AUTH_TYPE']}". ` +
         `Valid values are: ${Object.values(AuthType).join(', ')}.`
       );
     }
 
     if (
-      process.env.GEMINI_API_KEY &&
+      process.env['GEMINI_API_KEY'] &&
       (!defaultAuthType || defaultAuthType === AuthType.USE_GEMINI)
     ) {
       return 'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.';
@@ -66,27 +66,26 @@ export function AuthDialog({
   const SiliconFlowItems = [
     { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
   ];
-  const items = isSiliconFlow()
-    ? SiliconFlowItems
-    : [
-        {
-          label: 'Login with Google',
-          value: AuthType.LOGIN_WITH_GOOGLE,
-        },
-        ...(process.env.CLOUD_SHELL === 'true'
-          ? [
-              {
-                label: 'Use Cloud Shell user credentials',
-                value: AuthType.CLOUD_SHELL,
-              },
-            ]
-          : []),
-        {
-          label: 'Use Gemini API Key',
-          value: AuthType.USE_GEMINI,
-        },
-        { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
-      ];
+  const itemsUpstream = [
+    {
+      label: 'Login with Google',
+      value: AuthType.LOGIN_WITH_GOOGLE,
+    },
+    ...(process.env['CLOUD_SHELL'] === 'true'
+      ? [
+          {
+            label: 'Use Cloud Shell user credentials',
+            value: AuthType.CLOUD_SHELL,
+          },
+        ]
+      : []),
+    {
+      label: 'Use Gemini API Key',
+      value: AuthType.USE_GEMINI,
+    },
+    { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+  ];
+  const items = isSiliconFlow() ? SiliconFlowItems : itemsUpstream;
 
   const initialAuthIndex = items.findIndex((item) => {
     if (settings.merged.selectedAuthType) {
@@ -94,13 +93,13 @@ export function AuthDialog({
     }
 
     const defaultAuthType = parseDefaultAuthType(
-      process.env.GEMINI_DEFAULT_AUTH_TYPE,
+      process.env['GEMINI_DEFAULT_AUTH_TYPE'],
     );
     if (defaultAuthType) {
       return item.value === defaultAuthType;
     }
 
-    if (process.env.GEMINI_API_KEY) {
+    if (process.env['GEMINI_API_KEY']) {
       return item.value === AuthType.USE_GEMINI;
     }
 
