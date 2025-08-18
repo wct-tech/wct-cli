@@ -46,7 +46,6 @@ import { LoopDetectionService } from '../services/loopDetectionService.js';
 import { ideContext } from '../services/ideContext.js';
 import { logFlashDecidedToContinue } from '../telemetry/loggers.js';
 import { FlashDecidedToContinueEvent } from '../telemetry/types.js';
-import { loadServerHierarchicalMemory } from '../utils/memoryDiscovery.js';
 
 function isThinkingSupported(model: string) {
   if (model.startsWith('gemini-2.5')) return true;
@@ -185,20 +184,12 @@ export class GeminiClient {
     const folderStructure = await getFolderStructure(cwd, {
       fileService: this.config.getFileService(),
     });
-    const {memoryContent} = await loadServerHierarchicalMemory(
-      cwd,
-      this.config.getDebugMode(),
-      this.config.getFileService(),
-      this.config.getExtensionContextFilePaths(),
-      this.config.getFileFilteringOptions(),
-    )
     const context = `
   This is the Gemini CLI. We are setting up the context for our chat.
   Today's date is ${today}.
   My operating system is: ${platform}
   I'm currently working in the directory: ${cwd}
-  ${folderStructure},
-  the following are rules and extra content: ${memoryContent},
+  ${folderStructure}
           `.trim();
 
     const initialParts: Part[] = [{ text: context }];

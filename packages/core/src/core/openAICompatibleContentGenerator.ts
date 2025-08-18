@@ -67,8 +67,52 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
   private convertToOpenAIMessages(
     contents: Content[],
+    request: GenerateContentParameters,
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+    if (request.config?.systemInstruction) {
+      const systemInstruction = request.config.systemInstruction;
+      let systemText = '';
+
+      if (Array.isArray(systemInstruction)) {
+        systemText = systemInstruction
+          .map((content) => {
+            if (typeof content === 'string') return content;
+            if ('parts' in content) {
+              const contentObj = content as Content;
+              return (
+                contentObj.parts
+                  ?.map((p: Part) =>
+                    typeof p === 'string' ? p : 'text' in p ? p.text : '',
+                  )
+                  .join('\n') || ''
+              );
+            }
+            return '';
+          })
+          .join('\n');
+      } else if (typeof systemInstruction === 'string') {
+        systemText = systemInstruction;
+      } else if (
+        typeof systemInstruction === 'object' &&
+        'parts' in systemInstruction
+      ) {
+        const systemContent = systemInstruction as Content;
+        systemText =
+          systemContent.parts
+            ?.map((p: Part) =>
+              typeof p === 'string' ? p : 'text' in p ? p.text : '',
+            )
+            .join('\n') || '';
+      }
+
+      if (systemText) {
+        messages.push({
+          role: 'system' as const,
+          content: systemText,
+        });
+      }
+    }
     for (const [index, content] of contents.entries()) {
       const role =
         content.role === 'model'
@@ -233,7 +277,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
     const tools: OpenAI.Chat.Completions.ChatCompletionTool[] | undefined =
       request.config?.tools?.flatMap((tool) => {
         if ('functionDeclarations' in tool) {
@@ -388,7 +432,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
 
     const tools = undefined;
 
@@ -411,7 +455,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     const contentsArray = toContents(request.contents);
 
     // We'll estimate based on the text length (rough approximation: 4 chars per token)
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
     const totalText = messages.map((m) => m.content).join(' ');
     const estimatedTokens = Math.ceil(totalText.length / 4);
 
