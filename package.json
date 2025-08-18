@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -43,6 +43,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "preflight": "npm run clean && npm ci && npm run format && npm run lint:ci && npm run gen-cli:rename && npm run build && npm run typecheck && npm run test:ci",
     "prepare": "npm run bundle",
+    "publish:nightly": "node scripts/npmPublish.js --nightly",
+    "publish:latest": "node scripts/npmPublish.js",
     "prepare:package": "node scripts/prepare-package.js",
     "release:version": "node scripts/version.js",
     "telemetry": "node scripts/telemetry.js",
