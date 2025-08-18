@@ -57,12 +57,19 @@ app.use(express.json());
 app.use(cors({
   origin: '*' // Explicitly allow 'null' origin
 }));
-const settings = loadSettings(process.cwd());
-const argv = await parseArguments();
-const configCli = await loadCliConfig(settings.merged, [], 'api-service', argv);
+const loadGeminiConfigCli = async ( project_path: string ) => {
+  try {
+    const settings = loadSettings(project_path);
+    const argv = await parseArguments();
+    const configCli = await loadCliConfig(settings.merged, [], 'api-service', argv);
+    return configCli;
+  } catch (error) {
+    console.log('加载workSpace配置失败：', error)
+  }
+}
+
 // 默认配置
 const DEFAULT_CONFIG:ConfigParameters = {
-  ...configCli,
   sessionId: 'api-service',
   targetDir: process.cwd(),
   debugMode: false,
@@ -72,7 +79,7 @@ const DEFAULT_CONFIG:ConfigParameters = {
 };
 
 // 创建配置对象，支持自定义项目路径
-function createConfig(projectPath?: string, model?: string): Config {
+async function createConfig(projectPath?: string, model?: string): Promise<Config> {
   let targetDir = projectPath || process.cwd();
 
   // 修复Windows路径问题，如果提供了项目路径
@@ -81,9 +88,11 @@ function createConfig(projectPath?: string, model?: string): Config {
   } else if (projectPath) {
     targetDir = path.resolve(process.cwd(), projectPath);
   }
+  const configCli = await loadGeminiConfigCli(targetDir);
 
   console.log(`创建配置对象，项目路径: ${targetDir}, 模型: ${model}`);
   return new Config({
+    ...configCli,
     ...DEFAULT_CONFIG,
     model: model || DEFAULT_CONFIG.model,
     targetDir,
@@ -128,7 +137,7 @@ function executeToolWithTimeout(
 }
 
 // 初始化默认配置
-const globalConfig = createConfig();
+const globalConfig = await createConfig();
 await globalConfig.initialize();
 globalConfig.setFlashFallbackHandler(async()=>true);
 
@@ -839,7 +848,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       console.log(`接收到的模型参数: ${requestedModel}`);
       const validatedModel = validateModel(requestedModel);
       
-      const currentConfig = createConfig(project_path, validatedModel);
+      const currentConfig = await createConfig(project_path, validatedModel);
       await currentConfig.initialize();
       currentConfig.setFlashFallbackHandler(async()=>true);
       if (project_path) {
