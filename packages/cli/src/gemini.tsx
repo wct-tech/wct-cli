@@ -198,7 +198,7 @@ export async function main() {
   settings.setValue(
     SettingScope.User,
     'selectedAuthType',
-    AuthType.USE_SILICONFLOW,
+    AuthType.USE_IWHALECLOUD,
   );
   setMaxSizedBoxDebugging(config.getDebugMode());
 

@@ -17,7 +17,8 @@ import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
 export function baseURL(): string {
-  return process.env['SILICONFLOW_BASE_URL'] || 'https://api.siliconflow.cn';
+  return 'https://lab.iwhalecloud.com/gpt-proxy';
+  // return process.env['SILICONFLOW_BASE_URL'] || 'https://api.siliconflow.cn';
 }
 /**
  * Helper function to convert ContentListUnion to Content[]

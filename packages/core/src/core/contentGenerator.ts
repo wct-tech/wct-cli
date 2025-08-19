@@ -44,7 +44,7 @@ export interface ContentGenerator {
 export enum AuthType {
   LOGIN_WITH_GOOGLE = 'oauth-personal',
   USE_GEMINI = 'gemini-api-key',
-  USE_SILICONFLOW = 'siliconflow-api-key',
+  USE_IWHALECLOUD = 'iwhalecloud-api-key',
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
 }
@@ -60,6 +60,7 @@ export type ContentGeneratorConfig = {
 export function createContentGeneratorConfig(
   config: Config,
   authType: AuthType | undefined,
+  apiKey?: string
 ): ContentGeneratorConfig {
   const geminiApiKey = process.env['GEMINI_API_KEY'] || undefined;
   const googleApiKey = process.env['GOOGLE_API_KEY'] || undefined;
@@ -72,13 +73,13 @@ export function createContentGeneratorConfig(
   const contentGeneratorConfig: ContentGeneratorConfig = {
     model: effectiveModel,
     authType,
+    apiKey,
     proxy: config?.getProxy(),
   };
 
   // If we are using Google auth or we are in Cloud Shell, there is nothing else to validate for now
   if (
-    authType === AuthType.LOGIN_WITH_GOOGLE ||
-    authType === AuthType.CLOUD_SHELL
+    authType === AuthType.USE_IWHALECLOUD
   ) {
     return contentGeneratorConfig;
   }
@@ -114,11 +115,11 @@ export async function createContentGenerator(
       'User-Agent': `GeminiCLI/${version} (${process.platform}; ${process.arch})`,
     },
   };
-  if (config.authType === AuthType.USE_SILICONFLOW) {
-    const apiKey = process.env['SILICONFLOW_API_KEY'];
+  if (config.authType === AuthType.USE_IWHALECLOUD) {
+    const apiKey = config.apiKey || process.env['WCT_API_KEY'];
     if (!apiKey) {
       throw new Error(
-        'SILICONFLOW_API_KEY environment variable is not set. Please set it to use SiliconFlow.',
+        'WCT_API_KEY environment variable is not set. Please set it to use IwhaleCloud.',
       );
     }
     return new OpenAICompatibleContentGenerator(apiKey);

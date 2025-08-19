@@ -16,9 +16,9 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
-  if (authMethod === AuthType.USE_SILICONFLOW) {
-    if (!process.env['SILICONFLOW_API_KEY']) {
-      return 'SILICONFLOW_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+  if (authMethod === AuthType.USE_IWHALECLOUD) {
+    if (!process.env['WCT_API_KEY']) {
+      return 'WCT_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     return null;
   }

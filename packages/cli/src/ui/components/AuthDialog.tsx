@@ -23,7 +23,7 @@ function parseDefaultAuthType(
   defaultAuthType: string | undefined,
 ): AuthType | null {
   if (isSiliconFlow()) {
-    return AuthType.USE_SILICONFLOW;
+    return AuthType.USE_IWHALECLOUD;
   }
   if (
     defaultAuthType &&
@@ -64,7 +64,7 @@ export function AuthDialog({
     return null;
   });
   const SiliconFlowItems = [
-    { label: 'SiliconFlow API Key', value: AuthType.USE_SILICONFLOW },
+    { label: 'iwhalecloud API Key', value: AuthType.USE_IWHALECLOUD },
   ];
   const itemsUpstream = [
     {

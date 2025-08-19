@@ -8,7 +8,7 @@ forked from [Google Gemini CLI](https://github.com/google-gemini/gemini-cli)
 2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key (copy from [here](https://cloud.siliconflow.cn/account/ak)).
 
    ```bash
-   export SILICONFLOW_API_KEY="YOUR_API_KEY"
+   export WCT_API_KEY="YOUR_API_KEY"
    ```
 
 3. **Run the CLI:** Execute the following command in your terminal:
