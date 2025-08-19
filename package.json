@@ -1,5 +1,5 @@
 {
-  "name": "@google/gemini-cli",
+  "name": "@wct-cli/wct-cli",
   "version": "0.1.21",
   "engines": {
     "node": ">=20.0.0"

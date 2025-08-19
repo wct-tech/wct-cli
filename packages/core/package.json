@@ -1,5 +1,5 @@
 {
-  "name": "@google/gemini-cli-core",
+  "name": "@wct-cli/wct-cli-core",
   "version": "0.1.21",
   "description": "Gemini CLI Core",
   "repository": {
@@ -58,7 +58,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@google/gemini-cli-test-utils": "file:../test-utils",
+    "@wct-cli/wct-cli-test-utils": "file:../test-utils",
     "@types/diff": "^7.0.2",
     "@types/dotenv": "^6.1.1",
     "@types/micromatch": "^4.0.8",

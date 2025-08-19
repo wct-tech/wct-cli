@@ -14,7 +14,7 @@ import {
   IdeClient,
   type File,
   ideContext,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import path from 'node:path';
 import {
   CommandContext,

@@ -26,7 +26,7 @@ import {
   UserPromptEvent,
   DEFAULT_GEMINI_FLASH_MODEL,
   parseAndFormatApiError,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { type Part, type PartListUnion, FinishReason } from '@google/genai';
 import {
   StreamingState,

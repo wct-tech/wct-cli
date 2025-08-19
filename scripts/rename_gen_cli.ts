@@ -99,7 +99,7 @@ async function renamePackageReferences() {
 
     for (const file of files.concat('package-lock.json')) {
       const content = await fs.readFile(file);
-      if (content.includes('@google/gemini-cli')) {
+      if (content.includes('@wct-cli/wct-cli')) {
         const newContent = content
           .replace(/@google\/gemini-cli-core/g, '@gen-cli/gen-cli-core')
           .replace(/@google\/gemini-cli/g, '@gen-cli/gen-cli');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { isSiliconFlow } from '@google/gemini-cli-core';
+import { isSiliconFlow } from '@wct-cli/wct-cli-core';
 
 interface EndpointDisplayProps {
   baseURL?: string;

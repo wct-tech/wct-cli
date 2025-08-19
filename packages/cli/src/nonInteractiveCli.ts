@@ -14,7 +14,7 @@ import {
   GeminiEventType,
   ToolErrorType,
   parseAndFormatApiError,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { Content, Part, FunctionCall } from '@google/genai';
 
 import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';

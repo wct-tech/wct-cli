@@ -9,7 +9,7 @@ import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType, isSiliconFlow } from '@google/gemini-cli-core';
+import { AuthType, isSiliconFlow } from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 

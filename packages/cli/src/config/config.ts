@@ -27,7 +27,7 @@ import {
   EditTool,
   WriteFileTool,
   MCPServerConfig,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { Settings } from './settings.js';
 
 import { Extension, annotateActiveExtensions } from './extension.js';

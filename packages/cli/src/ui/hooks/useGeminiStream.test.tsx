@@ -22,7 +22,7 @@ import {
   AuthType,
   GeminiEventType as ServerGeminiEventType,
   AnyToolInvocation,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { Part, PartListUnion } from '@google/genai';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import {
@@ -53,7 +53,7 @@ const MockedUserPromptEvent = vi.hoisted(() =>
 );
 const mockParseAndFormatApiError = vi.hoisted(() => vi.fn());
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const actualCoreModule = (await importOriginal()) as any;
   return {
     ...actualCoreModule,

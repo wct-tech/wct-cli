@@ -22,7 +22,7 @@ import {
   isWithinRoot,
   getErrorStatus,
   MCPServerConfig,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import * as acp from './acp.js';
 import { Readable, Writable } from 'node:stream';
 import { Content, Part, FunctionCall, PartListUnion } from '@google/genai';

@@ -17,7 +17,7 @@ import {
   GeminiClient,
   ideContext,
   type AuthType,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
@@ -89,10 +89,10 @@ interface MockServerConfig {
   getIdeClient: Mock<() => { getCurrentIde: Mock<() => string | undefined> }>;
 }
 
-// Mock @google/gemini-cli-core and its Config class
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+// Mock @wct-cli/wct-cli-core and its Config class
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const actualCore =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+    await importOriginal<typeof import('@wct-cli/wct-cli-core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -258,7 +258,7 @@ vi.mock('../hooks/useTerminalSize.js', () => ({
 
 const mockedCheckForUpdates = vi.mocked(checkForUpdates);
 const { isGitRepository: mockedIsGitRepository } = vi.mocked(
-  await import('@google/gemini-cli-core'),
+  await import('@wct-cli/wct-cli-core'),
 );
 
 vi.mock('node:child_process');
@@ -362,7 +362,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(true);
       const info: UpdateObject = {
         update: {
-          name: '@google/gemini-cli',
+          name: '@wct-cli/wct-cli',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -389,7 +389,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@google/gemini-cli',
+          name: '@wct-cli/wct-cli',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -419,7 +419,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@google/gemini-cli',
+          name: '@wct-cli/wct-cli',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -449,7 +449,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@google/gemini-cli',
+          name: '@wct-cli/wct-cli',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -482,7 +482,7 @@ describe('App UI', () => {
       process.env.GEMINI_CLI_DISABLE_AUTOUPDATER = 'true';
       const info: UpdateObject = {
         update: {
-          name: '@google/gemini-cli',
+          name: '@wct-cli/wct-cli',
           latest: '1.1.0',
           current: '1.0.0',
         },

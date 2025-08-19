@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthDialog } from './AuthDialog.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@wct-cli/wct-cli-core';
 import { renderWithProviders } from '../../test-utils/render.js';
 
 describe('AuthDialog', () => {

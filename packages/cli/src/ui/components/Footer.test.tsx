@@ -8,15 +8,15 @@ import { render } from 'ink-testing-library';
 import { describe, it, expect, vi } from 'vitest';
 import { Footer } from './Footer.js';
 import * as useTerminalSize from '../hooks/useTerminalSize.js';
-import { tildeifyPath } from '@google/gemini-cli-core';
+import { tildeifyPath } from '@wct-cli/wct-cli-core';
 import path from 'node:path';
 
 vi.mock('../hooks/useTerminalSize.js');
 const useTerminalSizeMock = vi.mocked(useTerminalSize.useTerminalSize);
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+    await importOriginal<typeof import('@wct-cli/wct-cli-core')>();
   return {
     ...original,
     shortenPath: (p: string, len: number) => {

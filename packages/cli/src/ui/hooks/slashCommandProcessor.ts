@@ -16,7 +16,7 @@ import {
   makeSlashCommandEvent,
   SlashCommandStatus,
   ToolConfirmationOutcome,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import {

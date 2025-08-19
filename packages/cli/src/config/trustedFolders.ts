@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
-import { getErrorMessage, isWithinRoot } from '@google/gemini-cli-core';
+import { getErrorMessage, isWithinRoot } from '@wct-cli/wct-cli-core';
 import { Settings } from './settings.js';
 import stripJsonComments from 'strip-json-comments';
 

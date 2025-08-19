@@ -9,7 +9,7 @@ import {
   escapeShellArg,
   getShellConfiguration,
   ShellExecutionService,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 import { CommandContext } from '../../ui/commands/types.js';
 import {

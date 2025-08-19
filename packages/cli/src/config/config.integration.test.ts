@@ -12,7 +12,7 @@ import {
   Config,
   ConfigParameters,
   ContentGeneratorConfig,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
@@ -40,8 +40,8 @@ const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
 };
 
 // Mock file discovery service and tool registry
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual('@google/gemini-cli-core');
+vi.mock('@wct-cli/wct-cli-core', async () => {
+  const actual = await vi.importActual('@wct-cli/wct-cli-core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn().mockImplementation(() => ({

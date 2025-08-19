@@ -20,7 +20,7 @@ import {
   ToolCall,
   Status as CoreStatus,
   EditorType,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useCallback, useState, useMemo } from 'react';
 import {
   HistoryItemToolGroup,

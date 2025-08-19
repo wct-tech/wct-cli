@@ -9,7 +9,7 @@ import {
   validateNonInteractiveAuth,
   NonInteractiveConfig,
 } from './validateNonInterActiveAuth.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@wct-cli/wct-cli-core';
 import * as auth from './config/auth.js';
 
 describe('validateNonInterActiveAuth', () => {

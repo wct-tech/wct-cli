@@ -18,7 +18,7 @@ import {
   SessionMetrics,
   ModelMetrics,
   sessionId,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 // --- Interface Definitions ---
 

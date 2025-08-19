@@ -55,7 +55,7 @@ npm run build && npm run start -- --yolo --debug
 # Gemini CLI
 
 [![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/npm/v/@google/gemini-cli)](https://www.npmjs.com/package/@google/gemini-cli)
+[![Version](https://img.shields.io/npm/v/@wct-cli/wct-cli)](https://www.npmjs.com/package/@wct-cli/wct-cli)
 [![License](https://img.shields.io/github/license/google-gemini/gemini-cli)](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE)
 
 ![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
@@ -85,7 +85,7 @@ npx https://github.com/google-gemini/gemini-cli
 #### Install globally with npm
 
 ```bash
-npm install -g @google/gemini-cli
+npm install -g @wct-cli/wct-cli
 ```
 
 #### Install globally with Homebrew (macOS/Linux)
@@ -313,7 +313,7 @@ Check our [Official Roadmap](https://github.com/orgs/google-gemini/projects/11/)
 ## 📖 Resources
 
 - **[Official Roadmap](./ROADMAP.md)** - See what's coming next
-- **[NPM Package](https://www.npmjs.com/package/@google/gemini-cli)** - Package registry
+- **[NPM Package](https://www.npmjs.com/package/@wct-cli/wct-cli)** - Package registry
 - **[GitHub Issues](https://github.com/google-gemini/gemini-cli/issues)** - Report bugs or request features
 - **[Security Advisories](https://github.com/google-gemini/gemini-cli/security/advisories)** - Security updates
 

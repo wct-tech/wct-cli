@@ -15,7 +15,7 @@ import {
   CommandKind,
   SlashCommandActionReturn,
 } from './types.js';
-import { decodeTagName } from '@google/gemini-cli-core';
+import { decodeTagName } from '@wct-cli/wct-cli-core';
 import path from 'path';
 import { HistoryItemWithoutId, MessageType } from '../types.js';
 

@@ -10,7 +10,7 @@ import {
   TelemetrySettings,
   AuthType,
   ChatCompressionSettings,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { CustomTheme } from '../ui/themes/theme.js';
 
 export interface SettingDefinition {

@@ -13,7 +13,7 @@ import {
   Config,
   getProjectCommandsDir,
   getUserCommandsDir,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { ICommandLoader } from './types.js';
 import {
   CommandContext,

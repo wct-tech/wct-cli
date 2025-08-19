@@ -8,9 +8,9 @@ const { logSlashCommand } = vi.hoisted(() => ({
   logSlashCommand: vi.fn(),
 }));
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+    await importOriginal<typeof import('@wct-cli/wct-cli-core')>();
 
   return {
     ...original,
@@ -76,7 +76,7 @@ import {
   ConfirmShellCommandsActionReturn,
   SlashCommand,
 } from '../commands/types.js';
-import { ToolConfirmationOutcome } from '@google/gemini-cli-core';
+import { ToolConfirmationOutcome } from '@wct-cli/wct-cli-core';
 import { LoadedSettings } from '../../config/settings.js';
 import { MessageType } from '../types.js';
 import { BuiltinCommandLoader } from '../../services/BuiltinCommandLoader.js';
@@ -85,7 +85,7 @@ import { McpPromptLoader } from '../../services/McpPromptLoader.js';
 import {
   SlashCommandStatus,
   makeFakeConfig,
-} from '@google/gemini-cli-core/index.js';
+} from '@wct-cli/wct-cli-core/index.js';
 
 function createTestCommand(
   overrides: Partial<SlashCommand>,
