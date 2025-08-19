@@ -67,9 +67,53 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
   private convertToOpenAIMessages(
     contents: Content[],
+    request: GenerateContentParameters
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
-    for (const content of contents) {
+    if (request.config?.systemInstruction) {
+      const systemInstruction = request.config.systemInstruction;
+      let systemText = '';
+
+      if (Array.isArray(systemInstruction)) {
+        systemText = systemInstruction
+          .map((content) => {
+            if (typeof content === 'string') return content;
+            if ('parts' in content) {
+              const contentObj = content as Content;
+              return (
+                contentObj.parts
+                  ?.map((p: Part) =>
+                    typeof p === 'string' ? p : 'text' in p ? p.text : '',
+                  )
+                  .join('\n') || ''
+              );
+            }
+            return '';
+          })
+          .join('\n');
+      } else if (typeof systemInstruction === 'string') {
+        systemText = systemInstruction;
+      } else if (
+        typeof systemInstruction === 'object' &&
+        'parts' in systemInstruction
+      ) {
+        const systemContent = systemInstruction as Content;
+        systemText =
+          systemContent.parts
+            ?.map((p: Part) =>
+              typeof p === 'string' ? p : 'text' in p ? p.text : '',
+            )
+            .join('\n') || '';
+      }
+
+      if (systemText) {
+        messages.push({
+          role: 'system' as const,
+          content: systemText,
+        });
+      }
+    }
+    for (const [index, content] of contents.entries()) {
       const role =
         content.role === 'model'
           ? 'assistant'
@@ -143,11 +187,19 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         if (role === 'user') {
           throw new Error('Function calls cannot come from user role');
         }
+        let tool_id = undefined;
+        if (index + 1 < contents.length) {
+          tool_id = (contents[index + 1].parts as unknown as Array<{functionResponse: {
+            id: string;
+            name: string;
+            response: { output?: string; error?: string };
+          } }>)?.[0]?.functionResponse?.id || '';
+        }
         messages.push({
           role: 'assistant', // Force assistant role for tool calls
           content: null,
           tool_calls: functionCallParts.map((part) => ({
-            id: `call_${Math.random().toString(36).slice(2)}`,
+            id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
             type: 'function',
             function: {
               name: part.functionCall.name,
@@ -222,7 +274,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
     const tools: OpenAI.Chat.Completions.ChatCompletionTool[] | undefined =
       request.config?.tools?.flatMap((tool) => {
         if ('functionDeclarations' in tool) {
@@ -237,7 +289,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                   name: func.name,
                   description: func.description || '',
                   parameters:
-                    (func.parameters as Record<string, unknown>) || {},
+                    ((func.parameters || func.parametersJsonSchema) as Record<string, unknown>) || {type:"object",properties:""},
                 },
               };
             }) || []
@@ -377,7 +429,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     const contentsArray = toContents(request.contents);
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
 
     const tools = undefined;
 
@@ -400,7 +452,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     const contentsArray = toContents(request.contents);
 
     // We'll estimate based on the text length (rough approximation: 4 chars per token)
-    const messages = this.convertToOpenAIMessages(contentsArray);
+    const messages = this.convertToOpenAIMessages(contentsArray, request);
     const totalText = messages.map((m) => m.content).join(' ');
     const estimatedTokens = Math.ceil(totalText.length / 4);
 
