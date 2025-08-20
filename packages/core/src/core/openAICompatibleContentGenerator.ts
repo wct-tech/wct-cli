@@ -149,6 +149,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           part.functionResponse !== undefined &&
           typeof part.functionResponse.id === 'string' &&
           typeof part.functionResponse.name === 'string' &&
+          part.functionResponse.name.length > 0 &&
           part.functionResponse.response !== undefined &&
           (typeof part.functionResponse.response['output'] === 'string' ||
             typeof part.functionResponse.response['error'] === 'string'),
@@ -166,8 +167,9 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         messages.push({
           tool_call_id,
           role: 'tool',
+          name: functionResponseParts?.[0]?.functionResponse?.name || 'unknown_function',
           content: combinedText,
-        });
+        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
       }
       const functionCallParts = parts.filter(
         (
