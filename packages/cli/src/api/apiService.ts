@@ -64,7 +64,8 @@ const loadGeminiConfigCli = async ( project_path: string ) => {
     const configCli = await loadCliConfig(settings.merged, [], 'api-service', argv);
     return configCli;
   } catch (error) {
-    console.log('加载workSpace配置失败：', error)
+    console.error('加载workSpace配置失败：', error)
+    return {}
   }
 }
 
@@ -799,6 +800,7 @@ function validateModel(modelName: string): string {
 }
 
 app.post('/v1/chat/completions', (req: Request, res: Response) => {
+  // @ts-expect-error Not all code paths return a value.ts(7030)
   (async () => {
     const abortController = new AbortController();
     const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry } = req.body;
