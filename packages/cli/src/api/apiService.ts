@@ -9,7 +9,7 @@
  */
 
 // 设置环境变量，禁用遥测
-process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+process.env['GEMINI_CLI_TELEMETRY_DISABLED'] = '1';
 
 import express, { Request, Response } from 'express';
 import {
@@ -145,13 +145,13 @@ globalConfig.setFlashFallbackHandler(async()=>true);
 const toolRegistryPromise = globalConfig.getToolRegistry();
 
 // 设置环境变量，启用OpenAI模式
-process.env.USE_OPENAI = 'true';
-process.env.OPENAI_API_URL = process.env.OPENAI_API_URL || process.env.PROXY_API_URL || 'https://lab.iwhalecloud.com/gpt-proxy/v1';
-process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.THIRD_PARTY_API_KEY;
+process.env['USE_OPENAI'] = 'true';
+process.env['OPENAI_API_URL'] = process.env['OPENAI_API_URL'] || process.env['PROXY_API_URL'] || 'https://lab.iwhalecloud.com/gpt-proxy/v1';
+process.env['OPENAI_API_KEY'] = process.env['OPENAI_API_KEY'] || process.env['THIRD_PARTY_API_KEY'];
 
 // 如果使用OpenAI，默认禁用遥测
-if (process.env.USE_OPENAI === 'true') {
-  process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+if (process.env['USE_OPENAI'] === 'true') {
+  process.env['GEMINI_CLI_TELEMETRY_DISABLED'] = '1';
 }
 
 // 初始化认证
@@ -395,8 +395,8 @@ function debugModelSelection(model: string, config: Config): void {
   console.log(`[DEBUG] 模型选择诊断:`);
   console.log(`  1. 请求指定模型: ${model || '(未指定)'}`);
   console.log(`  2. 配置实例中的模型: ${config.getModel()}`);
-  console.log(`  3. 环境变量中的API URL: ${process.env.OPENAI_API_URL || '(未设置)'}`);
-  console.log(`  4. USE_OPENAI环境变量: ${process.env.USE_OPENAI || '(未设置)'}`);
+  console.log(`  3. 环境变量中的API URL: ${process.env['OPENAI_API_URL'] || '(未设置)'}`);
+  console.log(`  4. USE_OPENAI环境变量: ${process.env['USE_OPENAI'] || '(未设置)'}`);
 }
 
 // 提交查询
@@ -764,16 +764,16 @@ async function streamGeminiToClient(
 
 // 添加API连接状态检查
 async function checkApiConnection(apiKey?: string): Promise<boolean> {
-  if (!process.env.OPENAI_API_URL) {
+  if (!process.env['OPENAI_API_URL']) {
     return false;
   }
   
   try {
-    const response = await fetch(`${process.env.OPENAI_API_URL}/models`, {
+    const response = await fetch(`${process.env['OPENAI_API_URL']}/models`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey || process.env.WCT_API_KEY}`,
+        'Authorization': `Bearer ${apiKey || process.env['WCT_API_KEY']}`,
       }
     });
     
@@ -834,7 +834,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       const finalApiKey = apiKeyFromHeader || api_key;
 
       if (disable_telemetry) {
-        process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+        process.env['GEMINI_CLI_TELEMETRY_DISABLED'] = '1';
       }
       
       // 检查API连接状态
@@ -1007,7 +1007,7 @@ app.get('/v1/chatPage', (req, res) => {
   res.sendFile(path.join(__dirname, 'client-test.html'));
 });
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env['PORT']) || 3000;
 app.listen(port, "0.0.0.0", () => {
   console.log(`OpenAI兼容API服务正在监听端口 ${port}`);
   toolRegistryPromise.then(registry => {
