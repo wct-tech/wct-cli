@@ -854,7 +854,7 @@ export class GeminiClient {
     error?: unknown,
   ): Promise<string | null> {
     // Only handle fallback for OAuth users
-    if (authType !== AuthType.LOGIN_WITH_GOOGLE) {
+    if (authType !== AuthType.USE_IWHALECLOUD) {
       return null;
     }
 

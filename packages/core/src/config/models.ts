@@ -9,13 +9,13 @@ export function isSiliconFlow(): boolean {
 }
 
 export const DEFAULT_MODEL = isSiliconFlow()
-  ? 'deepseek-ai/DeepSeek-V3'
+  ? 'gemini-2.5-pro'
   : 'gemini-2.5-pro';
 export const DEFAULT_FLASH_MODEL = isSiliconFlow()
-  ? 'deepseek-ai/DeepSeek-V3'
+  ? 'gemini-2.5-flash'
   : 'gemini-2.5-flash';
 export const DEFAULT_FLASH_LITE_MODEL = isSiliconFlow()
-  ? 'deepseek-ai/DeepSeek-V3'
+  ? 'DeepSeek-V3'
   : 'gemini-2.5-flash-lite';
 export const DEFAULT_EMBEDDING_MODEL = isSiliconFlow()
   ? 'Qwen/Qwen3-Embedding-8B'
