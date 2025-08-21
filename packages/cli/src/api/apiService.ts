@@ -124,13 +124,13 @@ function executeToolWithTimeout(
     
     // 替换完成回调
     const originalOnComplete = scheduler['onAllToolCallsComplete'];
-    scheduler['onAllToolCallsComplete'] = (
+    scheduler['onAllToolCallsComplete'] = async (
       tools: CompletedToolCall[], // type定义
     ) => {
       clearTimeout(timeoutId);
       const toolNames = tools.map((tool) => tool.request.name).join(', ');
       console.log(`工具调用 [${toolNames}] 已完成`);
-      originalOnComplete?.(tools);
+      await originalOnComplete?.(tools);
       resolve(tools);
     };
   });
@@ -205,14 +205,14 @@ function getToolScheduler(sessionId: string, config: Config): CoreToolScheduler 
     scheduler = new CoreToolScheduler({
       toolRegistry: config.getToolRegistry(), // 修复tool调用可以跳出当前目录的问题
       outputUpdateHandler: () => {}, // No live output for API
-      onAllToolCallsComplete: (completedTools) => {
+      onAllToolCallsComplete: async (completedTools) => {
         // Handle completed tools - this will be called by the scheduler
         console.log(`Session ${sessionId}: ${completedTools.length} tools completed`);
       },
       onToolCallsUpdate: () => {}, // No UI updates needed
-      approvalMode: config.getApprovalMode(),
       getPreferredEditor: () => undefined, // No editor for API
       config,
+      onEditorClose: () => {}, // No editor for API
     });
     toolSchedulers.set(schedulerKey, scheduler);
   }
