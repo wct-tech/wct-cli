@@ -100,7 +100,7 @@ export async function retryWithBackoff<T>(
       // Check for Pro quota exceeded error first - immediate fallback for OAuth users
       if (
         errorStatus === 429 &&
-        authType === AuthType.LOGIN_WITH_GOOGLE &&
+        authType === AuthType.USE_IWHALECLOUD &&
         isProQuotaExceededError(error) &&
         onPersistent429
       ) {
@@ -126,7 +126,7 @@ export async function retryWithBackoff<T>(
       // Check for generic quota exceeded error (but not Pro, which was handled above) - immediate fallback for OAuth users
       if (
         errorStatus === 429 &&
-        authType === AuthType.LOGIN_WITH_GOOGLE &&
+        authType === AuthType.USE_IWHALECLOUD &&
         !isProQuotaExceededError(error) &&
         isGenericQuotaExceededError(error) &&
         onPersistent429
@@ -161,7 +161,7 @@ export async function retryWithBackoff<T>(
       if (
         consecutive429Count >= 2 &&
         onPersistent429 &&
-        authType === AuthType.LOGIN_WITH_GOOGLE
+        authType === AuthType.USE_IWHALECLOUD
       ) {
         try {
           const fallbackModel = await onPersistent429(authType, error);
