@@ -18,7 +18,7 @@ import { reportError } from '../utils/errorReporting.js';
 
 export function baseURL(): string {
   return 'https://lab.iwhalecloud.com/gpt-proxy';
-  // return process.env.SILICONFLOW_BASE_URL || 'https://api.siliconflow.cn';
+  // return process.env['SILICONFLOW_BASE_URL'] || 'https://api.siliconflow.cn';
 }
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -67,7 +67,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
   private convertToOpenAIMessages(
     contents: Content[],
-    request: GenerateContentParameters,
+    request: GenerateContentParameters
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
     if (request.config?.systemInstruction) {
@@ -151,8 +151,8 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           typeof part.functionResponse.name === 'string' &&
           part.functionResponse.name.length > 0 &&
           part.functionResponse.response !== undefined &&
-          (typeof part.functionResponse.response.output === 'string' ||
-            typeof part.functionResponse.response.error === 'string'),
+          (typeof part.functionResponse.response['output'] === 'string' ||
+            typeof part.functionResponse.response['error'] === 'string'),
       );
 
       if (functionResponseParts.length > 0) {
@@ -201,11 +201,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           role: 'assistant', // Force assistant role for tool calls
           content: 'tool_call',
           tool_calls: functionCallParts.map((part) => ({
-            // id: `call_${Math.random().toString(36).slice(2)}`,
             id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
             type: 'function',
             function: {
-              name: part?.functionCall?.name || 'unknown_function',
+              name: part.functionCall.name,
               arguments: JSON.stringify(part.functionCall.args),
             },
           })),
@@ -292,7 +291,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                   name: func.name,
                   description: func.description || '',
                   parameters:
-                    (func.parameters as Record<string, unknown>) || {},
+                    ((func.parameters || func.parametersJsonSchema) as Record<string, unknown>) || {type:"object",properties:""},
                 },
               };
             }) || []
@@ -347,8 +346,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           }
           // Handle tool call deltas
           if (choice?.delta?.tool_calls) {
+            console.log('RAW toolCalls delta: ', JSON.stringify(choice.delta.tool_calls, null, 2));
             for (const toolCall of choice.delta.tool_calls) {
               const idx = toolCall.index;
+              const isNewEntry = !toolCallMap.has(idx);
               const current = toolCallMap.get(idx) || {
                 name: '',
                 arguments: '',
@@ -356,16 +357,49 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
               // Update name if provided
               if (toolCall.function?.name) {
+                console.log(`Updating name for index ${idx} from "${current.name}" to "${toolCall.function.name}"`);
                 current.name = toolCall.function.name;
+              } else if (isNewEntry) {
+                // If it's a new entry and no name is provided in the delta,
+                // try to infer the name from the last known tool call in the map.
+                // This handles cases where OpenAI streams arguments for subsequent calls
+                // without repeating the function name.
+                let inferredName = '';
+                if (toolCallMap.size > 0) {
+                  // Find the highest index less than the current one that has a name.
+                  for (let i = idx - 1; i >= 0; i--) {
+                    if (toolCallMap.has(i) && toolCallMap.get(i)!.name) {
+                      inferredName = toolCallMap.get(i)!.name;
+                      console.log(`Inferred name "${inferredName}" for new index ${idx} from previous index ${i}.`);
+                      break;
+                    }
+                  }
+                  // Fallback: if no preceding index has a name, take the name from the very first entry.
+                  // This is a common case where all parallel calls are to the same function.
+                  if (!inferredName && toolCallMap.has(0)) {
+                    inferredName = toolCallMap.get(0)!.name;
+                    console.log(`Inferred name "${inferredName}" for new index ${idx} from index 0 as a fallback.`);
+                  }
+                }
+                if (inferredName) {
+                  current.name = inferredName;
+                } else {
+                  console.log(`No name field in delta for new index ${idx} and could not infer name. Name remains "${current.name}".`);
+                }
+              } else {
+                console.log(`No name field in delta for existing index ${idx}. Name remains "${current.name}".`);
               }
 
               // Accumulate arguments
               if (toolCall.function?.arguments) {
+                // console.log(`Accumulating arguments for index ${idx}. Adding: "${toolCall.function.arguments}"`);
                 current.arguments += toolCall.function.arguments;
               }
 
               toolCallMap.set(idx, current);
+              console.log(`Updated state for index ${idx}:`, JSON.stringify(toolCallMap.get(idx), null, 2));
             }
+            console.log('Full toolCallMap state after processing all deltas in this chunk:', JSON.stringify(Array.from(toolCallMap.entries()), null, 2));
           }
 
           const tryRepair = (str: string) => {
@@ -383,20 +417,26 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           };
           // Flush completed tool calls on finish
           if (choice.finish_reason === 'tool_calls' && toolCallMap.size > 0) {
+            // console.log(`Finish reason is 'tool_calls'. Flushing toolCallMap. Final map state:`, JSON.stringify(Array.from(toolCallMap.entries()), null, 2));
             const geminiResponse = new GenerateContentResponse();
+            const parts = Array.from(toolCallMap.entries()).map(
+              ([_index, toolCall]) => {
+                console.log(`Creating functionCall part for index ${_index}: name="${toolCall.name}", args="${toolCall.arguments}"`);
+                return {
+                  functionCall: {
+                    name: toolCall.name,
+                    args: toolCall.arguments
+                      ? tryRepair(toolCall.arguments)
+                      : {},
+                  },
+                };
+              },
+            );
+            // console.log('Generated parts for Gemini response:', JSON.stringify(parts, null, 2));
             geminiResponse.candidates = [
               {
                 content: {
-                  parts: Array.from(toolCallMap.entries()).map(
-                    ([_index, toolCall]) => ({
-                      functionCall: {
-                        name: toolCall.name,
-                        args: toolCall.arguments
-                          ? tryRepair(toolCall.arguments)
-                          : {},
-                      },
-                    }),
-                  ),
+                  parts,
                   role: 'model',
                 },
                 index: 0,
