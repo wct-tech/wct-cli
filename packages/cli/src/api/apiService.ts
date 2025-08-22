@@ -29,6 +29,7 @@ import {
   CompletedToolCall,
   ApprovalMode,
   ConfigParameters,
+  DEFAULT_GEMINI_MODEL
 } from '@wct-cli/wct-cli-core';
 import { GenerateContentConfig, PartListUnion } from '@google/genai';
 import * as path from 'path';
@@ -73,7 +74,7 @@ const DEFAULT_CONFIG:ConfigParameters = {
   sessionId: 'api-service',
   targetDir: process.cwd(),
   debugMode: false,
-  model: 'gemini-2.5-flash', // 默认模型
+  model: DEFAULT_GEMINI_MODEL, // 默认模型
   cwd: process.cwd(),
   approvalMode: ApprovalMode.YOLO,
 };
