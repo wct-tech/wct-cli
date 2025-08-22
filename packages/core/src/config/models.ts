@@ -9,11 +9,11 @@ export function isSiliconFlow(): boolean {
 }
 
 export const DEFAULT_MODEL = isSiliconFlow()
-  ? 'gemini-2.5-pro'
-  : 'gemini-2.5-pro';
-export const DEFAULT_FLASH_MODEL = isSiliconFlow()
   ? 'gemini-2.5-flash'
   : 'gemini-2.5-flash';
+export const DEFAULT_FLASH_MODEL = isSiliconFlow()
+  ? 'gemini-2.5-pro'
+  : 'gemini-2.5-pro';
 export const DEFAULT_FLASH_LITE_MODEL = isSiliconFlow()
   ? 'DeepSeek-V3'
   : 'gemini-2.5-flash-lite';
