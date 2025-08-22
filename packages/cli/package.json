@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.1.21",
+  "version": "0.0.27-nightly.250821.9a6fe696",
   "description": "Gemini CLI",
   "repository": {
     "type": "git",
@@ -29,7 +29,7 @@
     "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.21"
   },
   "dependencies": {
-    "@wct-cli/wct-cli-core": "file:../core",
+    "@wct-cli/wct-cli-core": "^0.0.27-nightly.250821.9a6fe696",
     "@google/genai": "1.13.0",
     "@iarna/toml": "^2.2.5",
     "@modelcontextprotocol/sdk": "^1.15.1",
