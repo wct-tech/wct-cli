@@ -475,7 +475,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     const messages = this.convertToOpenAIMessages(contentsArray, request);
 
     const tools = undefined;
-
+    let responseMime = {}; // add json content support
+    if(request.config?.responseMimeType && request.config?.responseMimeType === 'application/json'){
+      responseMime = { response_format: { type: "json_object" }};
+    }
     const completion = await this.openai.chat.completions.create({
       model: request.model,
       messages,
@@ -484,6 +487,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       max_tokens: request.config?.maxOutputTokens,
       top_p: request.config?.topP,
       tools,
+      ...responseMime
     });
 
     return this.convertToGeminiResponse(completion);
