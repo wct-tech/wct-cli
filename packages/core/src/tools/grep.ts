@@ -245,9 +245,8 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
    */
   private isCommandAvailable(command: string): Promise<boolean> {
     return new Promise((resolve) => {
-      const checkCommand = process.platform === 'win32' ? 'where' : 'command';
-      const checkArgs =
-        process.platform === 'win32' ? [command] : ['-v', command];
+      const checkCommand = process.platform === 'win32' ? 'where' : 'which';
+      const checkArgs = [command];
       try {
         const child = spawn(checkCommand, checkArgs, {
           stdio: 'ignore',

@@ -416,7 +416,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
             }
           };
           // Flush completed tool calls on finish
-          if (choice.finish_reason === 'tool_calls' && toolCallMap.size > 0) {
+          if (choice?.finish_reason === 'tool_calls' && toolCallMap.size > 0) {
             // console.log(`Finish reason is 'tool_calls'. Flushing toolCallMap. Final map state:`, JSON.stringify(Array.from(toolCallMap.entries()), null, 2));
             const geminiResponse = new GenerateContentResponse();
             const parts = Array.from(toolCallMap.entries()).map(
