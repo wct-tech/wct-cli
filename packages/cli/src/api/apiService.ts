@@ -101,12 +101,35 @@ async function createConfig(projectPath?: string, model?: string): Promise<Confi
   });
 }
 
+// 初始化默认配置
+const globalConfig = await createConfig();
+await globalConfig.initialize();
+globalConfig.setFlashFallbackHandler(async()=>true);
+
+// 初始化工具注册表
+const toolRegistryPromise = globalConfig.getToolRegistry();
+
+// 设置环境变量，启用OpenAI模式
+process.env.USE_OPENAI = 'true';
+process.env.OPENAI_API_URL = process.env.OPENAI_API_URL || process.env.PROXY_API_URL || 'https://lab.iwhalecloud.com/gpt-proxy/v1';
+process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.THIRD_PARTY_API_KEY;
+process.env.WCT_API_TOOL_TIMEOUT = process.env.WCT_API_TOOL_TIMEOUT || '60000';
+process.env.WCT_API_REQUEST_TIMEOUT = process.env.WCT_API_REQUEST_TIMEOUT || '300000';
+
+// 如果使用OpenAI，默认禁用遥测
+if (process.env.USE_OPENAI === 'true') {
+  process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
+}
+
+// 初始化认证
+await globalConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
+
 // 添加工具调用超时处理函数
 function executeToolWithTimeout(
   scheduler: CoreToolScheduler, 
   toolCallRequests: ToolCallRequestInfo[], 
   abortController: AbortController,
-  timeoutMs: number = 60000
+  timeoutMs: number = Number(process.env.WCT_API_TOOL_TIMEOUT)
 ): Promise<{
   status: string;
   request: { isClientInitiated: boolean };
@@ -137,26 +160,6 @@ function executeToolWithTimeout(
   });
 }
 
-// 初始化默认配置
-const globalConfig = await createConfig();
-await globalConfig.initialize();
-globalConfig.setFlashFallbackHandler(async()=>true);
-
-// 初始化工具注册表
-const toolRegistryPromise = globalConfig.getToolRegistry();
-
-// 设置环境变量，启用OpenAI模式
-process.env.USE_OPENAI = 'true';
-process.env.OPENAI_API_URL = process.env.OPENAI_API_URL || process.env.PROXY_API_URL || 'https://lab.iwhalecloud.com/gpt-proxy/v1';
-process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.THIRD_PARTY_API_KEY;
-
-// 如果使用OpenAI，默认禁用遥测
-if (process.env.USE_OPENAI === 'true') {
-  process.env.GEMINI_CLI_TELEMETRY_DISABLED = '1';
-}
-
-// 初始化认证
-await globalConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
 
 const contentGeneratorCache = new Map<string, Promise<ContentGenerator>>();
 async function getContentGenerator(config: Config, apiKey?: string): Promise<ContentGenerator> {
@@ -827,7 +830,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
         res.write('data: [DONE]\n\n');
         res.end();
       }
-    }, 300000); // 5分钟超时
+    }, Number(process.env.WCT_API_REQUEST_TIMEOUT)); // 5分钟超时
     
     try {
       console.log('请求体:', JSON.stringify(req.body, null, 2));

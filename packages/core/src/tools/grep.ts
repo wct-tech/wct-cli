@@ -357,6 +357,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
       const gitAvailable = isGit && (await this.isCommandAvailable('git'));
 
       if (gitAvailable) {
+        console.debug('GrepLogic: git grep available, using git grep');
         strategyUsed = 'git grep';
         const gitArgs = [
           'grep',
@@ -407,6 +408,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
       // --- Strategy 2: System grep ---
       const grepAvailable = await this.isCommandAvailable('grep');
       if (grepAvailable) {
+        console.debug('GrepLogic: system grep available, using system grep');
         strategyUsed = 'system grep';
         const grepArgs = ['-r', '-n', '-H', '-E'];
         const commonExcludes = ['.git', 'node_modules', 'bower_components'];
