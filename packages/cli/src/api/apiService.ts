@@ -92,7 +92,7 @@ async function createConfig(projectPath?: string, model?: string, customMcpServe
   const configCli = await loadGeminiConfigCli(targetDir);
 
   console.log(`创建配置对象，项目路径: ${targetDir}, 模型: ${model}`);
-  const { mcpServers = {} } = configCli;
+  const mcpServers = configCli?.getMcpServers() || {};
   return new Config({
     ...configCli,
     ...DEFAULT_CONFIG,
