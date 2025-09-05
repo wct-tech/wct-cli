@@ -80,7 +80,7 @@ const DEFAULT_CONFIG:ConfigParameters = {
 };
 
 // 创建配置对象，支持自定义项目路径
-async function createConfig(projectPath?: string, model?: string): Promise<Config> {
+async function createConfig(projectPath?: string, model?: string, customMcpServers?: object): Promise<Config> {
   let targetDir = projectPath || process.cwd();
 
   // 修复Windows路径问题，如果提供了项目路径
@@ -92,10 +92,15 @@ async function createConfig(projectPath?: string, model?: string): Promise<Confi
   const configCli = await loadGeminiConfigCli(targetDir);
 
   console.log(`创建配置对象，项目路径: ${targetDir}, 模型: ${model}`);
+  const { mcpServers = {} } = configCli;
   return new Config({
     ...configCli,
     ...DEFAULT_CONFIG,
     model: model || DEFAULT_CONFIG.model,
+    mcpServers: {
+      ...mcpServers,
+      ...customMcpServers,
+    },
     targetDir,
     cwd: targetDir,
   });
@@ -805,7 +810,7 @@ function validateModel(modelName: string): string {
 app.post('/v1/chat/completions', (req: Request, res: Response) => {
   (async () => {
     const abortController = new AbortController();
-    const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry } = req.body;
+    const { messages, model, temperature, top_p, max_tokens, stream, session_id, project_path, api_key, disable_telemetry, mcp_servers } = req.body;
     // const abortSignal = abortController.signal;
 
     // 请求超时处理
@@ -852,7 +857,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       console.log(`接收到的模型参数: ${requestedModel}`);
       const validatedModel = validateModel(requestedModel);
       
-      const currentConfig = await createConfig(project_path, validatedModel);
+      const currentConfig = await createConfig(project_path, validatedModel, mcp_servers);
       await currentConfig.initialize();
       currentConfig.setFlashFallbackHandler(async()=>true);
       if (project_path) {
