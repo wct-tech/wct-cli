@@ -731,4 +731,9 @@ export class CoreToolScheduler {
       this.onToolCallsUpdate([...this.toolCalls]);
     }
   }
+
+  updateConfig(newConfig: Config): void {
+    this.config = newConfig;
+    this.toolRegistry = newConfig.getToolRegistry();
+  }
 }

@@ -202,6 +202,9 @@ async function getGeminiClient(sessionId: string, config: Config, apiKey?: strin
     );
     await client.initialize(contentGeneratorConfig);
     geminiClients.set(clientKey, client);
+  } else {
+    // 更新配置，重新设置tools
+    await client.updateConfig(config)    
   }
   return client;
 }
@@ -224,6 +227,9 @@ function getToolScheduler(sessionId: string, config: Config): CoreToolScheduler 
       config,
     });
     toolSchedulers.set(schedulerKey, scheduler);
+  } else {
+    // 更新配置，重新设置tools
+    scheduler.updateConfig(config);
   }
   return scheduler;
 }
