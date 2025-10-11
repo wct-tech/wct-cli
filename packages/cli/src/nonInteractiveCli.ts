@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config, ToolCallRequestInfo } from '@google/gemini-cli-core';
+import type { Config, ToolCallRequestInfo } from '@wct-cli/wct-cli-core';
 import { isSlashCommand } from './ui/utils/commandUtils.js';
 import type { LoadedSettings } from './config/settings.js';
 import {
@@ -17,7 +17,7 @@ import {
   OutputFormat,
   JsonFormatter,
   uiTelemetryService,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 import type { Content, Part } from '@google/genai';
 

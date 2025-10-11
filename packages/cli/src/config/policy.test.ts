@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { createPolicyEngineConfig } from './policy.js';
 import type { Settings } from './settings.js';
-import { ApprovalMode, PolicyDecision } from '@google/gemini-cli-core';
+import { ApprovalMode, PolicyDecision } from '@wct-cli/wct-cli-core';
 
 describe('createPolicyEngineConfig', () => {
   it('should return ASK_USER for all tools by default', () => {

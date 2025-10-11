@@ -1,14 +1,14 @@
 # Package Overview
 
-This monorepo contains two main packages: `@google/gemini-cli` and `@google/gemini-cli-core`.
+This monorepo contains two main packages: `@wct-cli/wct-cli` and `@wct-cli/wct-cli-core`.
 
-## `@google/gemini-cli`
+## `@wct-cli/wct-cli`
 
 This is the main package for the Gemini CLI. It is responsible for the user interface, command parsing, and all other user-facing functionality.
 
-When this package is published, it is bundled into a single executable file. This bundle includes all of the package's dependencies, including `@google/gemini-cli-core`. This means that whether a user installs the package with `npm install -g @google/gemini-cli` or runs it directly with `npx @google/gemini-cli`, they are using this single, self-contained executable.
+When this package is published, it is bundled into a single executable file. This bundle includes all of the package's dependencies, including `@wct-cli/wct-cli-core`. This means that whether a user installs the package with `npm install -g @wct-cli/wct-cli` or runs it directly with `npx @wct-cli/wct-cli`, they are using this single, self-contained executable.
 
-## `@google/gemini-cli-core`
+## `@wct-cli/wct-cli-core`
 
 This package contains the core logic for interacting with the Gemini API. It is responsible for making API requests, handling authentication, and managing the local cache.
 
@@ -34,4 +34,4 @@ This tells NPM that any folder inside the `packages` directory is a separate pac
 
 - **Simplified Dependency Management**: Running `npm install` from the root of the project will install all dependencies for all packages in the workspace and link them together. This means you don't need to run `npm install` in each package's directory.
 - **Automatic Linking**: Packages within the workspace can depend on each other. When you run `npm install`, NPM will automatically create symlinks between the packages. This means that when you make changes to one package, the changes are immediately available to other packages that depend on it.
-- **Simplified Script Execution**: You can run scripts in any package from the root of the project using the `--workspace` flag. For example, to run the `build` script in the `cli` package, you can run `npm run build --workspace @google/gemini-cli`.
+- **Simplified Script Execution**: You can run scripts in any package from the root of the project using the `--workspace` flag. For example, to run the `build` script in the `cli` package, you can run `npm run build --workspace @wct-cli/wct-cli`.

@@ -9,7 +9,7 @@ import type { CompressionProps } from '../../types.js';
 import Spinner from 'ink-spinner';
 import { theme } from '../../semantic-colors.js';
 import { SCREEN_READER_MODEL_PREFIX } from '../../textConstants.js';
-import { CompressionStatus } from '@google/gemini-cli-core';
+import { CompressionStatus } from '@wct-cli/wct-cli-core';
 
 export interface CompressionDisplayProps {
   compression: CompressionProps;

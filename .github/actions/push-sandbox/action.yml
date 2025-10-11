@@ -72,7 +72,7 @@ runs:
         GEMINI_SANDBOX: 'docker'
       run: |-
         npm run build:sandbox -- \
-          --image google/gemini-cli-sandbox:${{ steps.image_tag.outputs.FINAL_TAG }} \
+          --image wct-cli/wct-cli-sandbox:${{ steps.image_tag.outputs.FINAL_TAG }} \
           --output-file final_image_uri.txt
         echo "uri=$(cat final_image_uri.txt)" >> $GITHUB_OUTPUT
     - name: 'publish'

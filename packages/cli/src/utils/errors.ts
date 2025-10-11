@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@wct-cli/wct-cli-core';
 import {
   OutputFormat,
   JsonFormatter,
@@ -12,7 +12,7 @@ import {
   FatalTurnLimitedError,
   FatalToolExecutionError,
   FatalCancellationError,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {

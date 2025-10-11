@@ -9,10 +9,10 @@ inputs:
     description: 'The npm tag to publish with (e.g., latest, preview, nightly).'
     required: true
   wombat-token-core:
-    description: 'The npm token for the @google/gemini-cli-core package.'
+    description: 'The npm token for the @wct-cli/wct-cli-core package.'
     required: true
   wombat-token-cli:
-    description: 'The npm token for the @google/gemini-cli package.'
+    description: 'The npm token for the @wct-cli/wct-cli package.'
     required: true
   github-token:
     description: 'The GitHub token for creating the release.'
@@ -110,16 +110,16 @@ runs:
         registry-url: 'https://wombat-dressing-room.appspot.com'
         scope: '@google'
 
-    - name: '📦 Publish @google/gemini-cli-core'
+    - name: '📦 Publish @wct-cli/wct-cli-core'
       working-directory: '${{ inputs.working-directory }}'
       env:
         NODE_AUTH_TOKEN: '${{ inputs.wombat-token-core }}'
       shell: 'bash'
       run: |
         if [ "${{ inputs.dry-run }}" == "true" ]; then
-          npm publish --dry-run --workspace="@google/gemini-cli-core" --no-tag
+          npm publish --dry-run --workspace="@wct-cli/wct-cli-core" --no-tag
         else
-          npm publish --workspace="@google/gemini-cli-core" --no-tag
+          npm publish --workspace="@wct-cli/wct-cli-core" --no-tag
         fi
 
     - name: '🔗 Install latest core package'
@@ -127,27 +127,27 @@ runs:
       if: "${{ inputs.dry-run != 'true' }}"
       shell: 'bash'
       run: |
-        npm install "@google/gemini-cli-core@${{ inputs.release-version }}" \
-        --workspace="@google/gemini-cli" \
+        npm install "@wct-cli/wct-cli-core@${{ inputs.release-version }}" \
+        --workspace="@wct-cli/wct-cli" \
         --save-exact
 
-    - name: '📦 Publish @google/gemini-cli'
+    - name: '📦 Publish @wct-cli/wct-cli'
       working-directory: '${{ inputs.working-directory }}'
       env:
         NODE_AUTH_TOKEN: '${{ inputs.wombat-token-cli }}'
       shell: 'bash'
       run: |
         if [ "${{ inputs.dry-run }}" == "true" ]; then
-          npm publish --dry-run --workspace="@google/gemini-cli" --no-tag
+          npm publish --dry-run --workspace="@wct-cli/wct-cli" --no-tag
         else
-          npm publish --workspace="@google/gemini-cli" --no-tag
+          npm publish --workspace="@wct-cli/wct-cli" --no-tag
         fi
 
     - name: '🔬 Verify NPM release by version'
       uses: './.github/actions/verify-release'
       if: "${{ inputs.dry-run != 'true' && inputs.force-skip-tests != 'true' }}"
       with:
-        npm-package: '@google/gemini-cli@${{ inputs.release-version }}'
+        npm-package: '@wct-cli/wct-cli@${{ inputs.release-version }}'
         expected-version: '${{ inputs.release-version }}'
         ref: '${{ steps.release_branch.outputs.BRANCH_NAME }}'
         gemini_api_key: '${{ inputs.gemini_api_key }}'

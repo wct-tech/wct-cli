@@ -23,7 +23,7 @@ import {
   WriteFileTool,
   WebFetchTool,
   WebSearchTool,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import type { Settings } from './settings.js';
 
 // READ_ONLY_TOOLS is a list of built-in tools that do not modify the user's

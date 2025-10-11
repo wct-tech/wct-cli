@@ -33,13 +33,13 @@ import {
   runExitCleanup,
 } from './utils/cleanup.js';
 import { getCliVersion } from './utils/version.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@wct-cli/wct-cli-core';
 import {
   sessionId,
   logUserPrompt,
   AuthType,
   getOauthClient,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import {
   initializeApp,
   type InitializationResult,

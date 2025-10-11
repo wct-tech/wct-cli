@@ -16,7 +16,7 @@ defaults:
 jobs:
   refresh-embeddings:
     if: |-
-      ${{ vars.TRIAGE_DEDUPLICATE_ISSUES != '' && github.repository == 'google-gemini/gemini-cli' }}
+      ${{ vars.TRIAGE_DEDUPLICATE_ISSUES != '' && github.repository == 'wct-tech/wct-cli' }}
     permissions:
       contents: 'read'
       id-token: 'write' # Required for WIF, see https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-google-cloud-platform#adding-permissions-settings
@@ -71,7 +71,7 @@ jobs:
                     "-e", "GCP_PROJECT",
                     "-e", "GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json",
                     "-v", "${GOOGLE_APPLICATION_CREDENTIALS}:/app/gcp-credentials.json",
-                    "ghcr.io/google-gemini/gemini-cli-issue-triage@sha256:e3de1523f6c83aabb3c54b76d08940a2bf42febcb789dd2da6f95169641f94d3"
+                    "ghcr.io/wct-tech/wct-cli-issue-triage@sha256:e3de1523f6c83aabb3c54b76d08940a2bf42febcb789dd2da6f95169641f94d3"
                   ],
                   "env": {
                     "GITHUB_TOKEN": "${GITHUB_TOKEN}",

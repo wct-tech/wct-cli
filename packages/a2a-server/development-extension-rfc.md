@@ -40,7 +40,7 @@ The `development-tool` extension establishes a communication contract for workfl
     "streaming": true,
     "extensions": [
       {
-        "uri": "https://github.com/google-gemini/gemini-cli/blob/main/docs/a2a/developer-profile/v0/spec.md",
+        "uri": "https://github.com/wct-tech/wct-cli/blob/main/docs/a2a/developer-profile/v0/spec.md",
         "description": "An extension for interactive development tasks, enabling features like code generation, tool usage, and real-time status updates.",
         "required": true
       }

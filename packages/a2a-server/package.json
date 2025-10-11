@@ -1,11 +1,11 @@
 {
-  "name": "@google/gemini-cli-a2a-server",
+  "name": "@wct-cli/wct-cli-a2a-server",
   "version": "0.8.2",
   "private": true,
   "description": "Gemini CLI A2A Server",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git",
+    "url": "git+https://github.com/wct-tech/wct-cli.git",
     "directory": "packages/a2a-server"
   },
   "type": "module",
@@ -25,7 +25,7 @@
   "dependencies": {
     "@a2a-js/sdk": "^0.3.2",
     "@google-cloud/storage": "^7.16.0",
-    "@google/gemini-cli-core": "file:../core",
+    "@wct-cli/wct-cli-core": "file:../core",
     "express": "^5.1.0",
     "fs-extra": "^11.3.0",
     "tar": "^7.4.3",

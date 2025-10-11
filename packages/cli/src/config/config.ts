@@ -15,7 +15,7 @@ import type {
   FileFilteringOptions,
   MCPServerConfig,
   OutputFormat,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { extensionsCommand } from '../commands/extensions.js';
 import {
   Config,
@@ -33,7 +33,7 @@ import {
   WriteFileTool,
   resolveTelemetrySettings,
   FatalConfigError,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import type { Settings } from './settings.js';
 
 import type { Extension } from './extension.js';

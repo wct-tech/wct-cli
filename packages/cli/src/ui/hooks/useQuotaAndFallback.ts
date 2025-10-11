@@ -12,7 +12,7 @@ import {
   isGenericQuotaExceededError,
   isProQuotaExceededError,
   UserTierId,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type UseHistoryManagerReturn } from './useHistoryManager.js';
 import { AuthState, MessageType } from '../types.js';

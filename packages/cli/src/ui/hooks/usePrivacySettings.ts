@@ -10,7 +10,7 @@ import {
   type CodeAssistServer,
   UserTierId,
   getCodeAssistServer,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 export interface PrivacyState {
   isLoading: boolean;

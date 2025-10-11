@@ -13,7 +13,7 @@ import {
 import {
   type MCPServerConfig,
   type ExtensionInstallMetadata,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 export function createExtension({
   extensionsDir = 'extensions-dir',

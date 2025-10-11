@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { toolsCommand } from './toolsCommand.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { MessageType } from '../types.js';
-import type { Tool } from '@google/gemini-cli-core';
+import type { Tool } from '@wct-cli/wct-cli-core';
 
 // Mock tools for testing
 const mockTools = [

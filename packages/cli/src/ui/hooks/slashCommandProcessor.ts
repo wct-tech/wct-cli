@@ -8,7 +8,7 @@ import { useCallback, useMemo, useEffect, useState } from 'react';
 import { type PartListUnion } from '@google/genai';
 import process from 'node:process';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@wct-cli/wct-cli-core';
 import {
   GitService,
   Logger,
@@ -18,7 +18,7 @@ import {
   ToolConfirmationOutcome,
   Storage,
   IdeClient,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import type {
   Message,

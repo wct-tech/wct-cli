@@ -7,11 +7,11 @@
 import { useState, useCallback } from 'react';
 import type { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { type HistoryItem, MessageType } from '../types.js';
-import type { EditorType } from '@google/gemini-cli-core';
+import type { EditorType } from '@wct-cli/wct-cli-core';
 import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 interface UseEditorSettingsReturn {
   isEditorDialogOpen: boolean;

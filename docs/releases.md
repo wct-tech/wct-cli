@@ -16,7 +16,7 @@ Each Tuesday ~2000 UTC new Stable and Preview releases will be cut. The promotio
 These releases will not have been fully vetted and may contain regressions or other outstanding issues. Please help us test and install with `preview` tag.
 
 ```bash
-npm install -g @google/gemini-cli@preview
+npm install -g @wct-cli/wct-cli@preview
 ```
 
 ### Stable
@@ -24,7 +24,7 @@ npm install -g @google/gemini-cli@preview
 This will be the full promotion of last week's release + any bug fixes and validations. Use `latest` tag.
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g @wct-cli/wct-cli@latest
 ```
 
 ### Nightly
@@ -32,7 +32,7 @@ npm install -g @google/gemini-cli@latest
 - New releases will be published each day at UTC 0000. This will be all changes from the main branch as represented at time of release. It should be assumed there are pending validations and issues. Use `nightly` tag.
 
 ```bash
-npm install -g @google/gemini-cli@nightly
+npm install -g @wct-cli/wct-cli@nightly
 ```
 
 ## Weekly Release Promotion
@@ -95,7 +95,7 @@ This is the preferred method for both rollbacks and rollforwards, as it does not
     - **Dry Run**: Leave as `true` to log the action without making changes, or set to `false` to perform the live tag change.
 5.  Click **Run workflow**.
 
-The workflow will then run `npm dist-tag add` for both the `@google/gemini-cli` and `@google/gemini-cli-core` packages, pointing the specified channel to the specified version.
+The workflow will then run `npm dist-tag add` for both the `@wct-cli/wct-cli` and `@wct-cli/wct-cli-core` packages, pointing the specified channel to the specified version.
 
 ## Patching
 
@@ -259,16 +259,16 @@ We also run a Google cloud build called [release-docker.yml](../.gcp/release-doc
 
 After pushing a new release smoke testing should be performed to ensure that the packages are working as expected. This can be done by installing the packages locally and running a set of tests to ensure that they are functioning correctly.
 
-- `npx -y @google/gemini-cli@latest --version` to validate the push worked as expected if you were not doing a rc or dev tag
-- `npx -y @google/gemini-cli@<release tag> --version` to validate the tag pushed appropriately
-- _This is destructive locally_ `npm uninstall @google/gemini-cli && npm uninstall -g @google/gemini-cli && npm cache clean --force &&  npm install @google/gemini-cli@<version>`
+- `npx -y @wct-cli/wct-cli@latest --version` to validate the push worked as expected if you were not doing a rc or dev tag
+- `npx -y @wct-cli/wct-cli@<release tag> --version` to validate the tag pushed appropriately
+- _This is destructive locally_ `npm uninstall @wct-cli/wct-cli && npm uninstall -g @wct-cli/wct-cli && npm cache clean --force &&  npm install @wct-cli/wct-cli@<version>`
 - Smoke testing a basic run through of exercising a few llm commands and tools is recommended to ensure that the packages are working as expected. We'll codify this more in the future.
 
 ## Local Testing and Validation: Changes to the Packaging and Publishing Process
 
 If you need to test the release process without actually publishing to NPM or creating a public GitHub release, you can trigger the workflow manually from the GitHub UI.
 
-1.  Go to the [Actions tab](https://github.com/google-gemini/gemini-cli/actions/workflows/release-manual.yml) of the repository.
+1.  Go to the [Actions tab](https://github.com/wct-tech/wct-cli/actions/workflows/release-manual.yml) of the repository.
 2.  Click on the "Run workflow" dropdown.
 3.  Leave the `dry_run` option checked (`true`).
 4.  Click the "Run workflow" button.
@@ -314,8 +314,8 @@ Here are the key stages:
 
 **Stage 3: Publishing Standard Packages to NPM**
 
-- **What happens:** The `npm publish` command is run for the `@google/gemini-cli-core` and `@google/gemini-cli` packages.
-- **Why:** This publishes them as standard Node.js packages. Users installing via `npm install -g @google/gemini-cli` will download these packages, and `npm` will handle installing the `@google/gemini-cli-core` dependency automatically. The code in these packages is not bundled into a single file.
+- **What happens:** The `npm publish` command is run for the `@wct-cli/wct-cli-core` and `@wct-cli/wct-cli` packages.
+- **Why:** This publishes them as standard Node.js packages. Users installing via `npm install -g @wct-cli/wct-cli` will download these packages, and `npm` will handle installing the `@wct-cli/wct-cli-core` dependency automatically. The code in these packages is not bundled into a single file.
 
 **Stage 4: Assembling and Creating the GitHub Release Asset**
 
@@ -336,11 +336,11 @@ This stage happens _after_ the NPM publish and creates the single-file executabl
 
 3.  **The GitHub Release is Created:**
     - **What happens:** The contents of the `bundle` directory, including the `gemini.js` executable, are attached as assets to a new GitHub Release.
-    - **Why:** This makes the single-file version of the CLI available for direct download and enables the `npx https://github.com/google-gemini/gemini-cli` command, which downloads and runs this specific bundled asset.
+    - **Why:** This makes the single-file version of the CLI available for direct download and enables the `npx https://github.com/wct-tech/wct-cli` command, which downloads and runs this specific bundled asset.
 
 **Summary of Artifacts**
 
-- **NPM:** Publishes standard, un-bundled Node.js packages. The primary artifact is the code in `packages/cli/dist`, which depends on `@google/gemini-cli-core`.
+- **NPM:** Publishes standard, un-bundled Node.js packages. The primary artifact is the code in `packages/cli/dist`, which depends on `@wct-cli/wct-cli-core`.
 - **GitHub Release:** Publishes a single, bundled `gemini.js` file that contains all dependencies, for easy execution via `npx`.
 
 This dual-artifact process ensures that both traditional `npm` users and those who prefer the convenience of `npx` have an optimized experience.

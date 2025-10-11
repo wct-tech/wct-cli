@@ -83,7 +83,7 @@ jobs:
           NODE_AUTH_TOKEN: '${{ secrets.WOMBAT_TOKEN_CLI }}'
         shell: 'bash'
         run: |
-          npm deprecate @google/gemini-cli@${{ github.event.inputs.rollback_origin }} "This version has been rolled back."
+          npm deprecate @wct-cli/wct-cli@${{ github.event.inputs.rollback_origin }} "This version has been rolled back."
 
       - name: 'Deprecate Core Npm Package'
         if: "${{ github.event.inputs.dry-run == 'false' }}"
@@ -158,7 +158,7 @@ jobs:
           - ORIGIN_HASH: '${{ steps.origin_hash.outputs.ORIGIN_HASH }}'
           - ROLLBACK_TAG: '${{ steps.rollback_tag.outputs.ROLLBACK_TAG }}'
 
-          Would have npm deprecate @google/gemini-cli@${{ github.event.inputs.rollback_origin }} and @google/gemini-core@${{ github.event.inputs.rollback_origin }}
+          Would have npm deprecate @wct-cli/wct-cli@${{ github.event.inputs.rollback_origin }} and @google/gemini-core@${{ github.event.inputs.rollback_origin }}
           Would have deleted the github release with tag ${{ steps.origin_tag.outputs.ORIGIN_TAG }}
           Would have added tag ${{ steps.origin_tag.outputs.ORIGIN_TAG }}-rollback to ${{ steps.origin_hash.outputs.ORIGIN_HASH }}
           "

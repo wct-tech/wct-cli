@@ -16,7 +16,7 @@ jobs:
           - 'self-hosted' # GHA on GCP runners
     runs-on: '${{ matrix.runner }}'
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' }}
+      ${{ github.repository == 'wct-tech/wct-cli' }}
     permissions:
       issues: 'write'
       pull-requests: 'write'

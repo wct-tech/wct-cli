@@ -11,7 +11,7 @@ on:
         description: 'NPM package to verify'
         required: true
         type: 'string'
-        default: '@google/gemini-cli@latest'
+        default: '@wct-cli/wct-cli@latest'
       ref:
         description: 'The branch, tag, or SHA to release from.'
         required: false

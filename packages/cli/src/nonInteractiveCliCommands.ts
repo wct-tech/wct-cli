@@ -11,7 +11,7 @@ import {
   Logger,
   uiTelemetryService,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { CommandService } from './services/CommandService.js';
 import { FileCommandLoader } from './services/FileCommandLoader.js';
 import type { CommandContext } from './ui/commands/types.js';

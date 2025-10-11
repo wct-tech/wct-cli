@@ -9,7 +9,7 @@ import type {
   ToolRegistry,
   ServerGeminiStreamEvent,
   SessionMetrics,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import {
   executeToolCall,
   ToolErrorType,
@@ -18,7 +18,7 @@ import {
   OutputFormat,
   uiTelemetryService,
   FatalInputError,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import type { Part } from '@google/genai';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { vi } from 'vitest';
@@ -26,9 +26,9 @@ import type { LoadedSettings } from './config/settings.js';
 
 // Mock core modules
 vi.mock('./ui/hooks/atCommandProcessor.js');
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+    await importOriginal<typeof import('@wct-cli/wct-cli-core')>();
 
   class MockChatRecordingService {
     initialize = vi.fn();

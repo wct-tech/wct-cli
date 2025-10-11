@@ -10,7 +10,7 @@ updates:
       prefix: 'chore(deps)'
       include: 'scope'
     reviewers:
-      - 'google-gemini/gemini-cli-askmode-approvers'
+      - 'wct-tech/wct-cli-askmode-approvers'
     groups:
       # Group all non-major updates together.
       # This is to reduce the number of PRs that need to be reviewed.
@@ -31,5 +31,5 @@ updates:
       prefix: 'chore(deps)'
       include: 'scope'
     reviewers:
-      - 'google-gemini/gemini-cli-askmode-approvers'
+      - 'wct-tech/wct-cli-askmode-approvers'
     open-pull-requests-limit: 0

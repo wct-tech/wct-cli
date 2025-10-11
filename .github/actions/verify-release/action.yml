@@ -5,7 +5,7 @@ inputs:
   npm-package:
     description: 'NPM Package'
     required: true
-    default: '@google/gemini-cli@latest'
+    default: '@wct-cli/wct-cli@latest'
   expected-version:
     description: 'Expected version'
     required: true

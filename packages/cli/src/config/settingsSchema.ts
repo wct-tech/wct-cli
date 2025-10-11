@@ -10,11 +10,11 @@ import type {
   TelemetrySettings,
   AuthType,
   ChatCompressionSettings,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import {
   DEFAULT_TRUNCATE_TOOL_OUTPUT_LINES,
   DEFAULT_TRUNCATE_TOOL_OUTPUT_THRESHOLD,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import type { CustomTheme } from '../ui/themes/theme.js';
 
 export type SettingsType =

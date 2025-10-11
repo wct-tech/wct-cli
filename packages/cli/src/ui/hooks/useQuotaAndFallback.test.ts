@@ -22,15 +22,15 @@ import {
   isGenericQuotaExceededError,
   isProQuotaExceededError,
   makeFakeConfig,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useQuotaAndFallback } from './useQuotaAndFallback.js';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { AuthState, MessageType } from '../types.js';
 
 // Mock the error checking functions from the core package to control test scenarios
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@wct-cli/wct-cli-core', async (importOriginal) => {
   const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+    await importOriginal<typeof import('@wct-cli/wct-cli-core')>();
   return {
     ...original,
     isGenericQuotaExceededError: vi.fn(),

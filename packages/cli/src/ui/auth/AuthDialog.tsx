@@ -15,7 +15,7 @@ import {
   AuthType,
   clearCachedCredentialFile,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { AuthState } from '../types.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
@@ -192,7 +192,7 @@ Logging in with Google... Please restart Gemini CLI to continue.
       <Box marginTop={1}>
         <Text color={theme.text.link}>
           {
-            'https://github.com/google-gemini/gemini-cli/blob/main/docs/tos-privacy.md'
+            'https://github.com/wct-tech/wct-cli/blob/main/docs/tos-privacy.md'
           }
         </Text>
       </Box>

@@ -42,7 +42,7 @@ import {
   AuthType,
   clearCachedCredentialFile,
   ShellExecutionService,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { loadHierarchicalGeminiMemory } from '../config/config.js';
 import process from 'node:process';

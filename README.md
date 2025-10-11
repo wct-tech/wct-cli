@@ -1,9 +1,9 @@
 # Gemini CLI
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![Gemini CLI E2E](https://github.com/google-gemini/gemini-cli/actions/workflows/e2e.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/e2e.yml)
-[![Version](https://img.shields.io/npm/v/@google/gemini-cli)](https://www.npmjs.com/package/@google/gemini-cli)
-[![License](https://img.shields.io/github/license/google-gemini/gemini-cli)](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE)
+[![Gemini CLI CI](https://github.com/wct-tech/wct-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/wct-tech/wct-cli/actions/workflows/ci.yml)
+[![Gemini CLI E2E](https://github.com/wct-tech/wct-cli/actions/workflows/e2e.yml/badge.svg)](https://github.com/wct-tech/wct-cli/actions/workflows/e2e.yml)
+[![Version](https://img.shields.io/npm/v/@wct-cli/wct-cli)](https://www.npmjs.com/package/@wct-cli/wct-cli)
+[![License](https://img.shields.io/github/license/wct-tech/wct-cli)](https://github.com/wct-tech/wct-cli/blob/main/LICENSE)
 
 ![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
 
@@ -26,13 +26,13 @@ Gemini CLI is an open-source AI agent that brings the power of Gemini directly i
 
 ```bash
 # Using npx (no installation required)
-npx https://github.com/google-gemini/gemini-cli
+npx https://github.com/wct-tech/wct-cli
 ```
 
 #### Install globally with npm
 
 ```bash
-npm install -g @google/gemini-cli
+npm install -g @wct-cli/wct-cli
 ```
 
 #### Install globally with Homebrew (macOS/Linux)
@@ -55,7 +55,7 @@ See [Releases](./docs/releases.md) for more details.
 New preview releases will be published each week at UTC 2359 on Tuesdays. These releases will not have been fully vetted and may contain regressions or other outstanding issues. Please help us test and install with `preview` tag.
 
 ```bash
-npm install -g @google/gemini-cli@preview
+npm install -g @wct-cli/wct-cli@preview
 ```
 
 ### Stable
@@ -63,7 +63,7 @@ npm install -g @google/gemini-cli@preview
 - New stable releases will be published each week at UTC 2000 on Tuesdays, this will be the full promotion of last week's `preview` release + any bug fixes and validations. Use `latest` tag.
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g @wct-cli/wct-cli@latest
 ```
 
 ### Nightly
@@ -71,7 +71,7 @@ npm install -g @google/gemini-cli@latest
 - New releases will be published each week at UTC 0000 each day, This will be all changes from the main branch as represented at time of release. It should be assumed there are pending validations and issues. Use `nightly` tag.
 
 ```bash
-npm install -g @google/gemini-cli@nightly
+npm install -g @wct-cli/wct-cli@nightly
 ```
 
 ## 📋 Key Features
@@ -223,7 +223,7 @@ gemini
 #### Analyze existing code
 
 ```bash
-git clone https://github.com/google-gemini/gemini-cli
+git clone https://github.com/wct-tech/wct-cli
 cd gemini-cli
 gemini
 > Give me a summary of all of the changes that went in yesterday
@@ -305,9 +305,9 @@ Check our [Official Roadmap](https://github.com/orgs/google-gemini/projects/11/)
 ## 📖 Resources
 
 - **[Official Roadmap](./ROADMAP.md)** - See what's coming next
-- **[NPM Package](https://www.npmjs.com/package/@google/gemini-cli)** - Package registry
-- **[GitHub Issues](https://github.com/google-gemini/gemini-cli/issues)** - Report bugs or request features
-- **[Security Advisories](https://github.com/google-gemini/gemini-cli/security/advisories)** - Security updates
+- **[NPM Package](https://www.npmjs.com/package/@wct-cli/wct-cli)** - Package registry
+- **[GitHub Issues](https://github.com/wct-tech/wct-cli/issues)** - Report bugs or request features
+- **[Security Advisories](https://github.com/wct-tech/wct-cli/security/advisories)** - Security updates
 
 ### Uninstall
 

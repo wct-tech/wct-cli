@@ -9,7 +9,7 @@ import * as path from 'node:path';
 import { homedir } from 'node:os';
 import * as dotenv from 'dotenv';
 
-import type { TelemetryTarget } from '@google/gemini-cli-core';
+import type { TelemetryTarget } from '@wct-cli/wct-cli-core';
 import {
   AuthType,
   Config,
@@ -20,7 +20,7 @@ import {
   GEMINI_CONFIG_DIR,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_MODEL,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 
 import { logger } from '../utils/logger.js';
 import type { Settings } from './settings.js';

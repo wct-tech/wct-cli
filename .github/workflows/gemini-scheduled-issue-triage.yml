@@ -21,7 +21,7 @@ jobs:
   triage-issues:
     timeout-minutes: 10
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' }}
+      ${{ github.repository == 'wct-tech/wct-cli' }}
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'

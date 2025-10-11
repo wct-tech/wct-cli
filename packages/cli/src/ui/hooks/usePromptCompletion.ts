@@ -5,11 +5,11 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@wct-cli/wct-cli-core';
 import {
   DEFAULT_GEMINI_FLASH_LITE_MODEL,
   getResponseText,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import type { Content, GenerateContentConfig } from '@google/genai';
 import type { TextBuffer } from '../components/shared/text-buffer.js';
 import { isSlashCommand } from '../utils/commandUtils.js';

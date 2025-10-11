@@ -9,7 +9,7 @@ import { getErrorMessage } from '../../utils/errors.js';
 import type {
   ExtensionInstallMetadata,
   GeminiCLIExtension,
-} from '@google/gemini-cli-core';
+} from '@wct-cli/wct-cli-core';
 import { ExtensionUpdateState } from '../../ui/state/extensions.js';
 import * as os from 'node:os';
 import * as https from 'node:https';

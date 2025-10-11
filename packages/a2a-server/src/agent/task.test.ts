@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { Task } from './task.js';
-import type { Config, ToolCallRequestInfo } from '@google/gemini-cli-core';
+import type { Config, ToolCallRequestInfo } from '@wct-cli/wct-cli-core';
 import { createMockConfig } from '../utils/testing_utils.js';
 import type { ExecutionEventBus } from '@a2a-js/sdk/server';
 

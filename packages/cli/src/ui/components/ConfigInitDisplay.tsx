@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { appEvents } from './../../utils/events.js';
 import { Box, Text } from 'ink';
 import { useConfig } from '../contexts/ConfigContext.js';
-import { type McpClient, MCPServerStatus } from '@google/gemini-cli-core';
+import { type McpClient, MCPServerStatus } from '@wct-cli/wct-cli-core';
 import { GeminiSpinner } from './GeminiRespondingSpinner.js';
 import { theme } from '../semantic-colors.js';
 

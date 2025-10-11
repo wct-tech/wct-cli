@@ -9,8 +9,8 @@ import path from 'node:path';
 import toml from '@iarna/toml';
 import { glob } from 'glob';
 import { z } from 'zod';
-import type { Config } from '@google/gemini-cli-core';
-import { Storage } from '@google/gemini-cli-core';
+import type { Config } from '@wct-cli/wct-cli-core';
+import { Storage } from '@wct-cli/wct-cli-core';
 import type { ICommandLoader } from './types.js';
 import type {
   CommandContext,
