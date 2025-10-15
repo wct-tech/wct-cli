@@ -16,7 +16,11 @@ export async function handleFallback(
   error?: unknown,
 ): Promise<string | boolean | null> {
   // Applicability Checks
-  if (authType !== AuthType.LOGIN_WITH_GOOGLE) return null;
+  if (
+    authType !== AuthType.LOGIN_WITH_GOOGLE &&
+    authType !== AuthType.USE_IWHALECLOUD
+  )
+    return null;
 
   const fallbackModel = DEFAULT_GEMINI_FLASH_MODEL;
 
