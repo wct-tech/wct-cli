@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
-export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash';
+const envDefaultModel = process.env['DEFAULT_MODEL'];
+const envDefaultFallbackModel = process.env['DEFAULT_FALLBACK_MODEL'];
+
+export const DEFAULT_GEMINI_MODEL = envDefaultModel || 'gemini-2.5-flash';
+export const DEFAULT_GEMINI_FLASH_MODEL =
+  envDefaultFallbackModel || 'gemini-2.5-pro';
 export const DEFAULT_GEMINI_FLASH_LITE_MODEL = 'gemini-2.5-flash-lite';
 
 export const DEFAULT_GEMINI_MODEL_AUTO = 'auto';
