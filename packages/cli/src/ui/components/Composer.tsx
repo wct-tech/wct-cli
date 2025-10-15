@@ -23,9 +23,10 @@ import { useUIActions } from '../contexts/UIActionsContext.js';
 import { useVimMode } from '../contexts/VimModeContext.js';
 import { useConfig } from '../contexts/ConfigContext.js';
 import { useSettings } from '../contexts/SettingsContext.js';
-import { ApprovalMode } from '@wct-cli/wct-cli-core';
+import { ApprovalMode, baseURL } from '@wct-cli/wct-cli-core';
 import { StreamingState } from '../types.js';
 import { ConfigInitDisplay } from '../components/ConfigInitDisplay.js';
+import { EndpointDisplay } from './EndpointDisplay.js';
 
 export const Composer = () => {
   const config = useConfig();
@@ -106,6 +107,9 @@ export const Composer = () => {
               />
             )
           )}
+        </Box>
+        <Box>
+          <EndpointDisplay baseURL={baseURL()}/>
         </Box>
         <Box paddingTop={isNarrow ? 1 : 0}>
           {showAutoAcceptIndicator !== ApprovalMode.DEFAULT &&

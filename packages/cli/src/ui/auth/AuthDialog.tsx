@@ -36,32 +36,40 @@ export function AuthDialog({
   authError,
   onAuthError,
 }: AuthDialogProps): React.JSX.Element {
+  // #wct-cli added
   let items = [
-    {
-      label: 'Login with Google',
-      value: AuthType.LOGIN_WITH_GOOGLE,
-      key: AuthType.LOGIN_WITH_GOOGLE,
-    },
-    ...(process.env['CLOUD_SHELL'] === 'true'
-      ? [
-          {
-            label: 'Use Cloud Shell user credentials',
-            value: AuthType.CLOUD_SHELL,
-            key: AuthType.CLOUD_SHELL,
-          },
-        ]
-      : []),
-    {
-      label: 'Use Gemini API Key',
-      value: AuthType.USE_GEMINI,
-      key: AuthType.USE_GEMINI,
-    },
-    {
-      label: 'Vertex AI',
-      value: AuthType.USE_VERTEX_AI,
-      key: AuthType.USE_VERTEX_AI,
-    },
-  ];
+    { 
+      label: 'iwhalecloud API Key', 
+      value: AuthType.USE_IWHALECLOUD,
+      key: AuthType.USE_IWHALECLOUD
+    }
+  ]
+  // let items = [
+  //   {
+  //     label: 'Login with Google',
+  //     value: AuthType.LOGIN_WITH_GOOGLE,
+  //     key: AuthType.LOGIN_WITH_GOOGLE,
+  //   },
+  //   ...(process.env['CLOUD_SHELL'] === 'true'
+  //     ? [
+  //         {
+  //           label: 'Use Cloud Shell user credentials',
+  //           value: AuthType.CLOUD_SHELL,
+  //           key: AuthType.CLOUD_SHELL,
+  //         },
+  //       ]
+  //     : []),
+  //   {
+  //     label: 'Use Gemini API Key',
+  //     value: AuthType.USE_GEMINI,
+  //     key: AuthType.USE_GEMINI,
+  //   },
+  //   {
+  //     label: 'Vertex AI',
+  //     value: AuthType.USE_VERTEX_AI,
+  //     key: AuthType.USE_VERTEX_AI,
+  //   },
+  // ];
 
   if (settings.merged.security?.auth?.enforcedType) {
     items = items.filter(
@@ -69,14 +77,15 @@ export function AuthDialog({
     );
   }
 
-  let defaultAuthType = null;
-  const defaultAuthTypeEnv = process.env['GEMINI_DEFAULT_AUTH_TYPE'];
-  if (
-    defaultAuthTypeEnv &&
-    Object.values(AuthType).includes(defaultAuthTypeEnv as AuthType)
-  ) {
-    defaultAuthType = defaultAuthTypeEnv as AuthType;
-  }
+  // #wct-cli added
+  const defaultAuthType = AuthType.USE_IWHALECLOUD;
+  // const defaultAuthTypeEnv = process.env['GEMINI_DEFAULT_AUTH_TYPE'];
+  // if (
+  //   defaultAuthTypeEnv &&
+  //   Object.values(AuthType).includes(defaultAuthTypeEnv as AuthType)
+  // ) {
+  //   defaultAuthType = defaultAuthTypeEnv as AuthType;
+  // }
 
   let initialAuthIndex = items.findIndex((item) => {
     if (settings.merged.security?.auth?.selectedType) {
@@ -186,13 +195,13 @@ Logging in with Google... Please restart Gemini CLI to continue.
       </Box>
       <Box marginTop={1}>
         <Text color={theme.text.primary}>
-          Terms of Services and Privacy Notice for Gemini CLI
+          如何配置wct-cli
         </Text>
       </Box>
       <Box marginTop={1}>
         <Text color={theme.text.link}>
           {
-            'https://github.com/wct-tech/wct-cli/blob/main/docs/tos-privacy.md'
+            'https://docs.iwhalecloud.com/doi/cSugKB/si1AGHuk/si1AGHuY'
           }
         </Text>
       </Box>

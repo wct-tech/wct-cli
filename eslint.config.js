@@ -175,22 +175,9 @@ export default tseslint.config(
   {
     files: ['./**/*.{tsx,ts,js}'],
     plugins: {
-      'license-header': licenseHeader,
       import: importPlugin,
     },
-    rules: {
-      'license-header/header': [
-        'error',
-        [
-          '/**',
-          ' * @license',
-          ' * Copyright 2025 Google LLC',
-          ' * SPDX-License-Identifier: Apache-2.0',
-          ' */',
-        ],
-      ],
-      'import/enforce-node-protocol-usage': ['error', 'always'],
-    },
+
   },
   // extra settings for scripts that we run directly with node
   {

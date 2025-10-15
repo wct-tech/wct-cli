@@ -239,6 +239,12 @@ export async function main() {
       );
     }
   }
+  /** #wct-cli added */
+  settings.setValue(
+    SettingScope.User,
+    'selectedAuthType',
+    AuthType.USE_IWHALECLOUD,
+  );
 
   // Load custom themes from settings
   themeManager.loadCustomThemes(settings.merged.ui?.customThemes);

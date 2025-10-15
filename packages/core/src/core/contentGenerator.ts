@@ -19,6 +19,7 @@ import type { Config } from '../config/config.js';
 import type { UserTierId } from '../code_assist/types.js';
 import { LoggingContentGenerator } from './loggingContentGenerator.js';
 import { InstallationManager } from '../utils/installationManager.js';
+import { OpenAICompatibleContentGenerator } from './openAICompatibleContentGenerator.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -43,6 +44,7 @@ export interface ContentGenerator {
 
 export enum AuthType {
   LOGIN_WITH_GOOGLE = 'oauth-personal',
+  USE_IWHALECLOUD = 'iwhalecloud-api-key',
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
   CLOUD_SHELL = 'cloud-shell',
@@ -58,6 +60,7 @@ export type ContentGeneratorConfig = {
 export function createContentGeneratorConfig(
   config: Config,
   authType: AuthType | undefined,
+  apiKey?: string
 ): ContentGeneratorConfig {
   const geminiApiKey = process.env['GEMINI_API_KEY'] || undefined;
   const googleApiKey = process.env['GOOGLE_API_KEY'] || undefined;
@@ -66,13 +69,15 @@ export function createContentGeneratorConfig(
 
   const contentGeneratorConfig: ContentGeneratorConfig = {
     authType,
+    apiKey,
     proxy: config?.getProxy(),
   };
 
   // If we are using Google auth or we are in Cloud Shell, there is nothing else to validate for now
   if (
     authType === AuthType.LOGIN_WITH_GOOGLE ||
-    authType === AuthType.CLOUD_SHELL
+    authType === AuthType.CLOUD_SHELL ||
+    authType === AuthType.USE_IWHALECLOUD
   ) {
     return contentGeneratorConfig;
   }
@@ -107,6 +112,15 @@ export async function createContentGenerator(
   const baseHeaders: Record<string, string> = {
     'User-Agent': userAgent,
   };
+  if (config.authType === AuthType.USE_IWHALECLOUD) {
+    const apiKeyFinal = config.apiKey || process.env['WCT_API_KEY'];
+    if (!apiKeyFinal) {
+      throw new Error(
+        'WCT_API_KEY environment variable is not set. Please set it to use IwhaleCloud.',
+      );
+    }
+    return new OpenAICompatibleContentGenerator(apiKeyFinal);
+  }
 
   if (
     config.authType === AuthType.LOGIN_WITH_GOOGLE ||
