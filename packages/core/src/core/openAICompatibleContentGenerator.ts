@@ -1,7 +1,4 @@
-import {  
-  GenerateContentResponse,
-  FinishReason 
-} from '@google/genai'
+import { GenerateContentResponse, FinishReason } from '@google/genai';
 import type {
   CountTokensResponse,
   GenerateContentParameters,
@@ -20,7 +17,9 @@ import { jsonrepair } from 'jsonrepair';
 import { reportError } from '../utils/errorReporting.js';
 
 export function baseURL(): string {
-  return process.env['WCT_CLI_BASE_URL'] || 'https://lab.iwhalecloud.com/gpt-proxy';
+  return (
+    process.env['WCT_CLI_BASE_URL'] || 'https://lab.iwhalecloud.com/gpt-proxy'
+  );
 }
 /**
  * Helper function to convert ContentListUnion to Content[]
@@ -69,7 +68,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
   private convertToOpenAIMessages(
     contents: Content[],
-    request: GenerateContentParameters
+    request: GenerateContentParameters,
   ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
     if (request.config?.systemInstruction) {
@@ -158,20 +157,16 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
       );
 
       if (functionResponseParts.length > 0) {
-        const combinedText = functionResponseParts
-          .map((part) =>
-            part.functionResponse.response.error
+        functionResponseParts.forEach((part) => {
+          messages.push({
+            tool_call_id: part.functionResponse.id,
+            role: 'tool',
+            name: part.functionResponse.name || 'unknown_function',
+            content: part.functionResponse.response.error
               ? `Error: ${part.functionResponse.response.error}`
               : part.functionResponse.response.output,
-          )
-          .join('\n');
-        const tool_call_id = functionResponseParts[0].functionResponse.id;
-        messages.push({
-          tool_call_id,
-          role: 'tool',
-          name: functionResponseParts?.[0]?.functionResponse?.name || 'unknown_function',
-          content: combinedText,
-        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
+          } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
+        });
       }
       const functionCallParts = parts.filter(
         (
@@ -191,25 +186,32 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         if (role === 'user') {
           throw new Error('Function calls cannot come from user role');
         }
-        let tool_id = undefined;
-        if (index + 1 < contents.length) {
-          tool_id = (contents[index + 1].parts as unknown as Array<{functionResponse: {
-            id: string;
-            name: string;
-            response: { output?: string; error?: string };
-          } }>)?.[0]?.functionResponse?.id || '';
-        }
         messages.push({
           role: 'assistant', // Force assistant role for tool calls
           content: 'tool_call',
-          tool_calls: functionCallParts.map((part) => ({
-            id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
-            type: 'function',
-            function: {
-              name: part.functionCall.name,
-              arguments: JSON.stringify(part.functionCall.args),
-            },
-          })),
+          tool_calls: functionCallParts.map((part, idx) => {
+            let tool_id = undefined;
+            if (index + 1 < contents.length) {
+              tool_id =
+                (
+                  contents[index + 1].parts as unknown as Array<{
+                    functionResponse: {
+                      id: string;
+                      name: string;
+                      response: { output?: string; error?: string };
+                    };
+                  }>
+                )?.[idx]?.functionResponse?.id || '';
+            }
+            return {
+              id: tool_id || `call_${Math.random().toString(36).slice(2)}`,
+              type: 'function',
+              function: {
+                name: part.functionCall.name,
+                arguments: JSON.stringify(part.functionCall.args),
+              },
+            };
+          }),
         });
       }
 
@@ -328,8 +330,11 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                 function: {
                   name: func.name,
                   description: func.description || '',
-                  parameters:
-                    ((func.parameters || func.parametersJsonSchema) as Record<string, unknown>) || {type:"object",properties:""},
+                  parameters: ((func.parameters ||
+                    func.parametersJsonSchema) as Record<string, unknown>) || {
+                    type: 'object',
+                    properties: '',
+                  },
                 },
               };
             }) || []
@@ -389,7 +394,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           }
           // Handle tool call deltas
           if (choice?.delta?.tool_calls) {
-            console.log('RAW toolCalls delta: ', JSON.stringify(choice.delta.tool_calls, null, 2));
+            console.log(
+              'RAW toolCalls delta: ',
+              JSON.stringify(choice.delta.tool_calls, null, 2),
+            );
             for (const toolCall of choice.delta.tool_calls) {
               const idx = toolCall.index;
               const isNewEntry = !toolCallMap.has(idx);
@@ -400,7 +408,9 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
 
               // Update name if provided
               if (toolCall.function?.name) {
-                console.log(`Updating name for index ${idx} from "${current.name}" to "${toolCall.function.name}"`);
+                console.log(
+                  `Updating name for index ${idx} from "${current.name}" to "${toolCall.function.name}"`,
+                );
                 current.name = toolCall.function.name;
               } else if (isNewEntry) {
                 // If it's a new entry and no name is provided in the delta,
@@ -413,7 +423,9 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                   for (let i = idx - 1; i >= 0; i--) {
                     if (toolCallMap.has(i) && toolCallMap.get(i)!.name) {
                       inferredName = toolCallMap.get(i)!.name;
-                      console.log(`Inferred name "${inferredName}" for new index ${idx} from previous index ${i}.`);
+                      console.log(
+                        `Inferred name "${inferredName}" for new index ${idx} from previous index ${i}.`,
+                      );
                       break;
                     }
                   }
@@ -421,16 +433,22 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                   // This is a common case where all parallel calls are to the same function.
                   if (!inferredName && toolCallMap.has(0)) {
                     inferredName = toolCallMap.get(0)!.name;
-                    console.log(`Inferred name "${inferredName}" for new index ${idx} from index 0 as a fallback.`);
+                    console.log(
+                      `Inferred name "${inferredName}" for new index ${idx} from index 0 as a fallback.`,
+                    );
                   }
                 }
                 if (inferredName) {
                   current.name = inferredName;
                 } else {
-                  console.log(`No name field in delta for new index ${idx} and could not infer name. Name remains "${current.name}".`);
+                  console.log(
+                    `No name field in delta for new index ${idx} and could not infer name. Name remains "${current.name}".`,
+                  );
                 }
               } else {
-                console.log(`No name field in delta for existing index ${idx}. Name remains "${current.name}".`);
+                console.log(
+                  `No name field in delta for existing index ${idx}. Name remains "${current.name}".`,
+                );
               }
 
               // Accumulate arguments
@@ -440,9 +458,15 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               }
 
               toolCallMap.set(idx, current);
-              console.log(`Updated state for index ${idx}:`, JSON.stringify(toolCallMap.get(idx), null, 2));
+              console.log(
+                `Updated state for index ${idx}:`,
+                JSON.stringify(toolCallMap.get(idx), null, 2),
+              );
             }
-            console.log('Full toolCallMap state after processing all deltas in this chunk:', JSON.stringify(Array.from(toolCallMap.entries()), null, 2));
+            console.log(
+              'Full toolCallMap state after processing all deltas in this chunk:',
+              JSON.stringify(Array.from(toolCallMap.entries()), null, 2),
+            );
           }
 
           const tryRepair = (str: string) => {
@@ -464,7 +488,9 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
             const geminiResponse = new GenerateContentResponse();
             const parts = Array.from(toolCallMap.entries()).map(
               ([_index, toolCall]) => {
-                console.log(`Creating functionCall part for index ${_index}: name="${toolCall.name}", args="${toolCall.arguments}"`);
+                console.log(
+                  `Creating functionCall part for index ${_index}: name="${toolCall.name}", args="${toolCall.arguments}"`,
+                );
                 return {
                   functionCall: {
                     name: toolCall.name,

@@ -38,6 +38,7 @@
     "comment-json": "^4.2.5",
     "diff": "^7.0.0",
     "dotenv": "^17.1.0",
+    "express": "5.1.0",
     "fzf": "^0.5.2",
     "glob": "^10.4.5",
     "highlight.js": "^11.11.1",
