@@ -52,7 +52,8 @@ export function useQuotaAndFallback({
       const contentGeneratorConfig = config.getContentGeneratorConfig();
       if (
         !contentGeneratorConfig ||
-        contentGeneratorConfig.authType !== AuthType.LOGIN_WITH_GOOGLE
+        (contentGeneratorConfig.authType !== AuthType.LOGIN_WITH_GOOGLE &&
+          contentGeneratorConfig.authType !== AuthType.USE_IWHALECLOUD)
       ) {
         return null;
       }
