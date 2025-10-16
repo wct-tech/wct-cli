@@ -14,7 +14,6 @@ process.env['GEMINI_CLI_TELEMETRY_DISABLED'] = '1';
 import express from 'express';
 import type { Request, Response } from 'express';
 import type {
-  ContentGenerator,
   ServerGeminiStreamEvent,
   ToolCallRequestInfo,
   ThoughtSummary,
@@ -25,8 +24,6 @@ import {
   GeminiChat,
   Config,
   AuthType,
-  createContentGenerator,
-  createContentGeneratorConfig,
   GeminiClient,
   CoreToolScheduler,
   getErrorMessage,
@@ -34,7 +31,11 @@ import {
   ApprovalMode,
   DEFAULT_GEMINI_MODEL,
 } from '@wct-cli/wct-cli-core';
-import type { GenerateContentConfig, PartListUnion } from '@google/genai';
+import {
+  FinishReason,
+  type GenerateContentConfig,
+  type PartListUnion,
+} from '@google/genai';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import cors from 'cors';
@@ -82,6 +83,9 @@ const loadGeminiConfigCli = async (project_path: string) => {
   }
 };
 
+// 存储Gemini配置
+const geminiConfigs = new Map<string, Config>();
+
 // 默认配置
 const DEFAULT_CONFIG: ConfigParameters = {
   sessionId: 'api-service',
@@ -97,6 +101,7 @@ async function createConfig(
   projectPath?: string,
   model?: string,
   customMcpServers?: object,
+  sessionId?: string,
 ): Promise<Config> {
   let targetDir = projectPath || process.cwd();
 
@@ -108,7 +113,9 @@ async function createConfig(
   }
   const configCli = await loadGeminiConfigCli(targetDir);
 
-  console.log(`创建配置对象，项目路径: ${targetDir}, 模型: ${model}`);
+  console.log(
+    `创建配置对象，项目路径: ${targetDir}, 模型: ${model || DEFAULT_CONFIG.model}`,
+  );
   const mcpServers = configCli?.getMcpServers() || {};
   return new Config({
     ...configCli,
@@ -118,6 +125,7 @@ async function createConfig(
       ...mcpServers,
       ...customMcpServers,
     },
+    sessionId: sessionId || DEFAULT_CONFIG.sessionId,
     targetDir,
     cwd: targetDir,
   });
@@ -127,6 +135,7 @@ async function createConfig(
 const globalConfig = await createConfig();
 await globalConfig.initialize();
 globalConfig.setFallbackModelHandler(async () => 'retry');
+geminiConfigs.set('default', globalConfig);
 
 // 初始化工具注册表
 const toolRegistryPromise = globalConfig.getToolRegistry();
@@ -192,22 +201,6 @@ function executeToolWithTimeout(
   });
 }
 
-const contentGeneratorCache = new Map<string, Promise<ContentGenerator>>();
-async function getContentGenerator(
-  config: Config,
-  apiKey?: string,
-): Promise<ContentGenerator> {
-  const authType = apiKey ? AuthType.USE_IWHALECLOUD : AuthType.USE_IWHALECLOUD;
-
-  const cgConfig = await createContentGeneratorConfig(config, authType, apiKey);
-  const key = JSON.stringify(cgConfig);
-
-  if (!contentGeneratorCache.has(key)) {
-    contentGeneratorCache.set(key, createContentGenerator(cgConfig, config));
-  }
-  return contentGeneratorCache.get(key)!;
-}
-
 // 存储聊天会话
 const chatSessions = new Map<string, GeminiChat>();
 
@@ -216,6 +209,41 @@ const geminiClients = new Map<string, GeminiClient>();
 
 // 存储工具调度器
 const toolSchedulers = new Map<string, CoreToolScheduler>();
+
+/** 获取缓存的配置 */
+async function getConfig(
+  projectPath?: string,
+  model?: string,
+  customMcpServers?: object,
+  sessionId?: string,
+  apiKey?: string,
+) {
+  let config = geminiConfigs.get(`${sessionId}-${projectPath}-${apiKey || ''}`);
+  if (!config) {
+    const newConfig = await createConfig(
+      projectPath,
+      model,
+      customMcpServers,
+      sessionId,
+    );
+    await newConfig.initialize();
+    await newConfig.refreshAuth(AuthType.USE_IWHALECLOUD, apiKey);
+    newConfig.setFallbackModelHandler(async () => 'retry');
+    geminiConfigs.set(`${sessionId}-${projectPath}-${apiKey || ''}`, newConfig);
+    return newConfig;
+  }
+  if (customMcpServers) {
+    // mcpServer只读属性，只能创建新的config
+    config = await createConfig(
+      projectPath,
+      model,
+      customMcpServers,
+      sessionId,
+    );
+    geminiConfigs.set(`${sessionId}-${projectPath}-${apiKey || ''}`, config);
+  }
+  return config;
+}
 
 // 获取或创建Gemini客户端
 async function getGeminiClient(
@@ -227,13 +255,7 @@ async function getGeminiClient(
   let client = geminiClients.get(clientKey);
   if (!client) {
     client = new GeminiClient(config);
-    // 使用传入的API Key创建内容生成器配置
-    const contentGeneratorConfig = await createContentGeneratorConfig(
-      config,
-      AuthType.USE_IWHALECLOUD,
-      apiKey,
-    );
-    await client.initialize(contentGeneratorConfig);
+    await client.initialize();
     geminiClients.set(clientKey, client);
   } else {
     // 更新配置，重新设置tools
@@ -251,17 +273,16 @@ function getToolScheduler(
   let scheduler = toolSchedulers.get(schedulerKey);
   if (!scheduler) {
     scheduler = new CoreToolScheduler({
-      toolRegistry: config.getToolRegistry(), // 修复tool调用可以跳出当前目录的问题
       outputUpdateHandler: () => {}, // No live output for API
-      onAllToolCallsComplete: (completedTools) => {
+      onAllToolCallsComplete: async (completedTools) => {
         // Handle completed tools - this will be called by the scheduler
         console.log(
           `Session ${sessionId}: ${completedTools.length} tools completed`,
         );
       },
       onToolCallsUpdate: () => {}, // No UI updates needed
-      approvalMode: config.getApprovalMode(),
       getPreferredEditor: () => undefined, // No editor for API
+      onEditorClose: () => {}, // No editor close handler needed for API
       config,
     });
     toolSchedulers.set(schedulerKey, scheduler);
@@ -730,7 +751,13 @@ async function streamGeminiToClient(
             'value' in event &&
             event.value
           ) {
-            delta = { [event.type]: event.value };
+            if (event.type === 'finished') {
+              if (
+                event.value.reason !== FinishReason.FINISH_REASON_UNSPECIFIED
+              ) {
+                delta = { [event.type]: event.value };
+              }
+            }
           }
 
           const chunk = {
@@ -957,7 +984,9 @@ function validateModel(modelName: string): string {
   return modelName;
 }
 
-app.post('/v1/chat/completions', (req: Request, res: Response) => {
+app.post('/v1/chat/completions', (req: Request, res: Response): void => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
   (async () => {
     const abortController = new AbortController();
     const {
@@ -1022,14 +1051,17 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       const requestedModel = model || DEFAULT_CONFIG.model;
       console.log(`接收到的模型参数: ${requestedModel}`);
       const validatedModel = validateModel(requestedModel);
-
-      const currentConfig = await createConfig(
+      const sessionId = session_id || 'default';
+      console.time('configTime');
+      const currentConfig = await getConfig(
         project_path,
         validatedModel,
         mcp_servers,
+        sessionId,
+        finalApiKey,
       );
-      await currentConfig.initialize();
-      currentConfig.setFallbackModelHandler(async () => 'retry');
+      currentConfig.setModel(model);
+      console.timeEnd('configTime');
       if (project_path) {
         console.log(`使用自定义项目路径: ${project_path}`);
         await currentConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
@@ -1042,13 +1074,13 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
       debugModelSelection(validatedModel, currentConfig);
 
       // 处理系统消息
-      const systemMessage = messages.find(
-        (msg: { role: string }) => msg.role === 'system',
-      );
-      if (systemMessage) {
-        messages.splice(messages.indexOf(systemMessage), 1);
-        console.log(`收到系统消息: ${systemMessage.content}`);
-      }
+      // const systemMessage = messages.find(
+      //   (msg: { role: string }) => msg.role === 'system',
+      // );
+      // if (systemMessage) {
+      //   messages.splice(messages.indexOf(systemMessage), 1);
+      //   console.log(`收到系统消息: ${systemMessage.content}`);
+      // }
 
       if (!messages || !Array.isArray(messages)) {
         console.error('响应:', formatError('无效的消息数组', '无效的消息数组'));
@@ -1056,24 +1088,16 @@ app.post('/v1/chat/completions', (req: Request, res: Response) => {
           .status(400)
           .json(formatError('无效的消息数组', '无效的消息数组'));
       }
-      const sessionId = session_id || 'default';
+
       const chatKey = `${sessionId}-${currentConfig.getTargetDir()}-${finalApiKey || ''}`;
       let chat = chatSessions.get(chatKey);
       if (!chat) {
-        const contentGenerator = await getContentGenerator(
-          currentConfig,
-          finalApiKey,
-        );
         const generationConfig: GenerateContentConfig = {
           temperature,
           topP: top_p,
           maxOutputTokens: max_tokens,
         };
-        chat = new GeminiChat(
-          currentConfig,
-          contentGenerator,
-          generationConfig,
-        );
+        chat = new GeminiChat(currentConfig, generationConfig);
         chatSessions.set(chatKey, chat);
       }
       const userMessage = messages[messages.length - 1]?.content;
@@ -1228,9 +1252,7 @@ app.get('/v1/chatPage', (req, res) => {
 const port = Number(process.env['PORT']) || 3000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`OpenAI兼容API服务正在监听端口 ${port}`);
-  toolRegistryPromise.then((registry) => {
-    console.log(
-      `工具注册表已初始化，共有 ${registry.getAllTools().length} 个工具`,
-    );
-  });
+  console.log(
+    `工具注册表已初始化，共有 ${toolRegistryPromise.getAllTools().length} 个工具`,
+  );
 });

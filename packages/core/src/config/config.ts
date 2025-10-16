@@ -483,7 +483,7 @@ export class Config {
     return this.contentGenerator;
   }
 
-  async refreshAuth(authMethod: AuthType) {
+  async refreshAuth(authMethod: AuthType, apikey?: string) {
     // Vertex and Genai have incompatible encryption and sending history with
     // throughtSignature from Genai to Vertex will fail, we need to strip them
     if (
@@ -497,6 +497,7 @@ export class Config {
     const newContentGeneratorConfig = createContentGeneratorConfig(
       this,
       authMethod,
+      apikey,
     );
     this.contentGenerator = await createContentGenerator(
       newContentGeneratorConfig,
