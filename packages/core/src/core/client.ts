@@ -144,7 +144,7 @@ export class GeminiClient {
    */
   private hasFailedCompressionAttempt = false;
 
-  constructor(private readonly config: Config) {
+  constructor(private config: Config) {
     this.loopDetector = new LoopDetectionService(config);
     this.lastPromptId = this.config.getSessionId();
   }
@@ -776,6 +776,11 @@ export class GeminiClient {
       newTokenCount,
       compressionStatus: CompressionStatus.COMPRESSED,
     };
+  }
+
+  async updateConfig(config: Config): Promise<void> {
+    this.config = config;
+    await this.setTools();
   }
 }
 

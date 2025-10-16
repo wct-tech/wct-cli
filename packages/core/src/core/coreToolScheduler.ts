@@ -1189,4 +1189,9 @@ export class CoreToolScheduler {
       }
     }
   }
+
+  async updateConfig(config: Config): Promise<void> {
+    this.config = config;
+    this.toolRegistry = await this.config.getToolRegistry();
+  }
 }
