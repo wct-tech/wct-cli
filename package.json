@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.8.2",
+  "version": "0.0.33",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -64,7 +64,7 @@
     }
   },
   "bin": {
-    "gemini": "bundle/gemini.js"
+    "wct-cli": "bundle/gemini.js"
   },
   "files": [
     "bundle/",
