@@ -21,6 +21,16 @@ export function baseURL(): string {
     process.env['WCT_CLI_BASE_URL'] || 'https://lab.iwhalecloud.com/gpt-proxy'
   );
 }
+
+export interface OpenAIUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  prompt_tokens_details?: {
+    cached_tokens?: number;
+  };
+  model_max_tokens?: number;
+}
 /**
  * Helper function to convert ContentListUnion to Content[]
  */
@@ -188,7 +198,7 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
         }
         messages.push({
           role: 'assistant', // Force assistant role for tool calls
-          content: 'tool_call',
+          content: '',
           tool_calls: functionCallParts.map((part, idx) => {
             let tool_id = undefined;
             if (index + 1 < contents.length) {
@@ -212,6 +222,35 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               },
             };
           }),
+        });
+      }
+      const inlineDataParts = parts.filter(
+        (
+          part: Part,
+        ): part is {
+          inlineData: { data: string; mimeType: string };
+        } =>
+          typeof part === 'object' &&
+          part !== null &&
+          'inlineData' in part &&
+          part.inlineData !== undefined &&
+          typeof part.inlineData.data === 'string' &&
+          part.inlineData.mimeType !== undefined,
+      );
+
+      if (inlineDataParts.length > 0) {
+        inlineDataParts.forEach((part) => {
+          messages.push({
+            role: 'user', // Force assistant role for tool calls
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
+                },
+              },
+            ],
+          });
         });
       }
 
@@ -371,6 +410,19 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
     >();
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const that = this;
+    const tryRepair = (str: string) => {
+      try {
+        return JSON.parse(jsonrepair(str));
+      } catch (error) {
+        reportError(
+          error,
+          'Error when talking to OpenAI-compatible API',
+          { params, str },
+          'OpenAICompatible.parseToolCallArguments',
+        );
+        throw error;
+      }
+    };
     const generator =
       async function* (): AsyncGenerator<GenerateContentResponse> {
         for await (const chunk of stream) {
@@ -468,20 +520,6 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               JSON.stringify(Array.from(toolCallMap.entries()), null, 2),
             );
           }
-
-          const tryRepair = (str: string) => {
-            try {
-              return JSON.parse(jsonrepair(str));
-            } catch (error) {
-              reportError(
-                error,
-                'Error when talking to OpenAI-compatible API',
-                { params, str },
-                'OpenAICompatible.parseToolCallArguments',
-              );
-              throw error;
-            }
-          };
           // Flush completed tool calls on finish
           if (choice?.finish_reason === 'tool_calls' && toolCallMap.size > 0) {
             // console.log(`Finish reason is 'tool_calls'. Flushing toolCallMap. Final map state:`, JSON.stringify(Array.from(toolCallMap.entries()), null, 2));
@@ -530,6 +568,50 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
                 finishReason: choice.finish_reason
                   ? that.mapFinishReason(choice.finish_reason)
                   : FinishReason.FINISH_REASON_UNSPECIFIED,
+                index: 0,
+                safetyRatings: [],
+              },
+            ];
+            yield geminiResponse;
+          }
+          if (chunk.usage) {
+            const geminiResponse = new GenerateContentResponse();
+            const usage = chunk.usage;
+
+            const promptTokens = usage.prompt_tokens || 0;
+            const completionTokens = usage.completion_tokens || 0;
+            const totalTokens = usage.total_tokens || 0;
+            const cachedTokens =
+              usage.prompt_tokens_details?.cached_tokens || 0;
+
+            // If we only have total tokens but no breakdown, estimate the split
+            // Typically input is ~70% and output is ~30% for most conversations
+            let finalPromptTokens = promptTokens;
+            let finalCompletionTokens = completionTokens;
+
+            if (
+              totalTokens > 0 &&
+              promptTokens === 0 &&
+              completionTokens === 0
+            ) {
+              // Estimate: assume 70% input, 30% output
+              finalPromptTokens = Math.round(totalTokens * 0.7);
+              finalCompletionTokens = Math.round(totalTokens * 0.3);
+            }
+
+            geminiResponse.usageMetadata = {
+              promptTokenCount: finalPromptTokens,
+              candidatesTokenCount: finalCompletionTokens,
+              totalTokenCount: totalTokens,
+              cachedContentTokenCount: cachedTokens,
+            };
+            geminiResponse.candidates = [
+              {
+                content: {
+                  parts: [],
+                  role: 'model',
+                },
+                finishReason: FinishReason.STOP,
                 index: 0,
                 safetyRatings: [],
               },
