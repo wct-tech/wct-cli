@@ -8,7 +8,7 @@ import { execSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
-import { getReleaseVersion } from './get-release-version.js';
+import { getReleaseVersion } from './get-release-version-old.js';
 import path from 'path';
 
 // ES module equivalent of __dirname
