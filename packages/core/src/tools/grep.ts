@@ -213,9 +213,8 @@ class GrepToolInvocation extends BaseToolInvocation<
    */
   private isCommandAvailable(command: string): Promise<boolean> {
     return new Promise((resolve) => {
-      const checkCommand = process.platform === 'win32' ? 'where' : 'command';
-      const checkArgs =
-        process.platform === 'win32' ? [command] : ['-v', command];
+      const checkCommand = process.platform === 'win32' ? 'where' : 'which';
+      const checkArgs = [command];
       try {
         const child = spawn(checkCommand, checkArgs, {
           stdio: 'ignore',
@@ -335,6 +334,7 @@ class GrepToolInvocation extends BaseToolInvocation<
       const gitAvailable = isGit && (await this.isCommandAvailable('git'));
 
       if (gitAvailable) {
+        console.debug('GrepLogic: git grep available, using git grep');
         strategyUsed = 'git grep';
         const gitArgs = [
           'grep',
@@ -387,6 +387,7 @@ class GrepToolInvocation extends BaseToolInvocation<
       // --- Strategy 2: System grep ---
       const grepAvailable = await this.isCommandAvailable('grep');
       if (grepAvailable) {
+        console.debug('GrepLogic: system grep available, using system grep');
         strategyUsed = 'system grep';
         const grepArgs = ['-r', '-n', '-H', '-E'];
         // Extract directory names from exclusion patterns for grep --exclude-dir
