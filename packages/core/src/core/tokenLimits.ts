@@ -23,7 +23,20 @@ export function tokenLimit(model: Model): TokenCount {
     case 'gemini-2.5-flash':
     case 'gemini-2.5-flash-lite':
     case 'gemini-2.0-flash':
+    case 'qwen3-coder-plus':
       return 1_048_576;
+    case 'DeepSeek-V3':
+    case 'DeepSeek-V3.1':
+    case 'glm-4.5':
+    case 'glm-4.5-x':
+    case 'glm-4.5-air':
+    case 'glm-4.5-flash':
+    case 'kimi-k2':
+      // 128k
+      return 128_000;
+    case 'glm-4.6':
+      // 200k
+      return 200_000;
     case 'gemini-2.0-flash-preview-image-generation':
       return 32_000;
     default:
