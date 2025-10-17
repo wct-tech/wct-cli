@@ -15,6 +15,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import type {
   ServerGeminiStreamEvent,
+  OpenAIUsage,
   ToolCallRequestInfo,
   ThoughtSummary,
   CompletedToolCall,
@@ -30,14 +31,16 @@ import {
   UnauthorizedError,
   ApprovalMode,
   DEFAULT_GEMINI_MODEL,
+  tokenLimit,
 } from '@wct-cli/wct-cli-core';
 import {
   FinishReason,
   type GenerateContentConfig,
   type PartListUnion,
+  type PartUnion,
 } from '@google/genai';
 import * as path from 'node:path';
-import * as fs from 'node:fs/promises';
+// import * as fs from 'node:fs/promises';
 import cors from 'cors';
 // import { GeminiClient } from '@google/gemini-cli-core/src/core/client';
 // import { CoreToolScheduler } from '@google/gemini-cli-core/src/core/coreToolScheduler';
@@ -55,9 +58,23 @@ import { ExtensionStorage } from '../config/extension.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const request_limit = process.env['WCT_API_REQUEST_BODY_SIZE'] || '5mb';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: request_limit }));
+
+interface ApiServiceMessage {
+  role: string;
+  content: string | ApiServiceMessageBinaryContent;
+}
+
+interface ApiServiceMessageBinaryContent {
+  type: 'image';
+  image_info: {
+    data: string;
+    mime_type: string;
+  };
+}
 
 // For Node.js/Express
 app.use(
@@ -300,52 +317,54 @@ function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   return list.flat();
 }
 
+/** 暂时注释 -- start -- */
 // 检查是否是@命令
-function isAtCommand(query: string): boolean {
-  return typeof query === 'string' && query.trim().startsWith('@');
-}
+// function isAtCommand(query: string): boolean {
+//   return typeof query === 'string' && query.trim().startsWith('@');
+// }
 
-// 处理@命令，用于文件读取
-async function handleAtCommand({
-  query,
-  config,
-}: {
-  query: string;
-  config: Config;
-}): Promise<{ processedQuery: PartListUnion; shouldProceed: boolean }> {
-  const atCommandRegex = /@([^\s\\]+(?:\\\s[^\s\\]+)*)/g;
-  const parts: { text: string }[] = [];
-  let lastIndex = 0;
-  let match;
-  let shouldProceed = true;
-  while ((match = atCommandRegex.exec(query)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ text: query.substring(lastIndex, match.index) });
-    }
-    const atPath = match[0];
-    const pathName = match[1];
-    parts.push({ text: atPath });
-    try {
-      const absolutePath = path.resolve(config.getTargetDir(), pathName);
-      const fileContent = await fs.readFile(absolutePath, 'utf-8');
-      parts.push({ text: '\n--- Content from referenced file ---\n' });
-      parts.push({ text: fileContent });
-      parts.push({ text: '\n--- End of content ---\n' });
-    } catch (error) {
-      console.warn(`Failed to read file ${pathName}:`, error);
-      parts.push({ text: `\n--- Error reading file ${pathName} ---\n` });
-      shouldProceed = false;
-    }
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < query.length) {
-    parts.push({ text: query.substring(lastIndex) });
-  }
-  return {
-    processedQuery: parts.length > 0 ? parts : [{ text: query }],
-    shouldProceed,
-  };
-}
+// 处理@命令，用于文件读取 comment for now
+// async function handleAtCommand({
+//   query,
+//   config,
+// }: {
+//   query: string;
+//   config: Config;
+// }): Promise<{ processedQuery: PartListUnion; shouldProceed: boolean }> {
+//   const atCommandRegex = /@([^\s\\]+(?:\\\s[^\s\\]+)*)/g;
+//   const parts: { text: string }[] = [];
+//   let lastIndex = 0;
+//   let match;
+//   let shouldProceed = true;
+//   while ((match = atCommandRegex.exec(query)) !== null) {
+//     if (match.index > lastIndex) {
+//       parts.push({ text: query.substring(lastIndex, match.index) });
+//     }
+//     const atPath = match[0];
+//     const pathName = match[1];
+//     parts.push({ text: atPath });
+//     try {
+//       const absolutePath = path.resolve(config.getTargetDir(), pathName);
+//       const fileContent = await fs.readFile(absolutePath, 'utf-8');
+//       parts.push({ text: '\n--- Content from referenced file ---\n' });
+//       parts.push({ text: fileContent });
+//       parts.push({ text: '\n--- End of content ---\n' });
+//     } catch (error) {
+//       console.warn(`Failed to read file ${pathName}:`, error);
+//       parts.push({ text: `\n--- Error reading file ${pathName} ---\n` });
+//       shouldProceed = false;
+//     }
+//     lastIndex = match.index + match[0].length;
+//   }
+//   if (lastIndex < query.length) {
+//     parts.push({ text: query.substring(lastIndex) });
+//   }
+//   return {
+//     processedQuery: parts.length > 0 ? parts : [{ text: query }],
+//     shouldProceed,
+//   };
+// }
+/** 暂时注释 -- end -- */
 
 // 解析和格式化API错误
 function parseAndFormatApiError(errorMessage: string): string {
@@ -365,46 +384,58 @@ function formatError(
 
 // 准备查询
 async function prepareQueryForGemini(
-  query: PartListUnion,
+  userMessages: ApiServiceMessage[],
   sessionId: string,
   config: Config,
 ): Promise<{
   queryToSend: PartListUnion | null;
   shouldProceed: boolean;
 }> {
-  if (typeof query === 'string' && query.trim().length === 0) {
-    return { queryToSend: null, shouldProceed: false };
-  }
-  let localQueryToSendToGemini: PartListUnion | null = null;
-  if (typeof query === 'string') {
-    const trimmedQuery = query.trim();
-    // logUserPrompt(
-    //   config,
-    //   new UserPromptEvent(trimmedQuery.length, trimmedQuery),
-    // );
-    console.log(`Session ${sessionId} - User query: '${trimmedQuery}'`);
-    if (isAtCommand(trimmedQuery)) {
-      const atCommandResult = await handleAtCommand({
-        query: trimmedQuery,
-        config,
-      });
-      if (!atCommandResult.shouldProceed) {
-        return { queryToSend: null, shouldProceed: false };
-      }
-      localQueryToSendToGemini = atCommandResult.processedQuery;
+  config.getApprovalMode();
+  const localQuerysToSendToGemini: PartListUnion | null = [];
+  for (const message of userMessages) {
+    const query = message.content;
+    let localQueryToSendToGemini: PartUnion;
+    if (typeof query === 'string') {
+      const trimmedQuery = query.trim();
+      console.log(`Session ${sessionId} - User query: '${trimmedQuery}'`);
+      localQueryToSendToGemini = { text: trimmedQuery };
+      // logUserPrompt(
+      //   config,
+      //   new UserPromptEvent(trimmedQuery.length, trimmedQuery),
+      // );
+      // if (isAtCommand(trimmedQuery)) {
+      //   const atCommandResult = await handleAtCommand({
+      //     query: trimmedQuery,
+      //     config,
+      //   });
+      //   if (!atCommandResult.shouldProceed) {
+      //     // return null;
+      //     continue;
+      //   }
+      //   localQueryToSendToGemini = atCommandResult.processedQuery;
+      // } else {
+      //   localQueryToSendToGemini = trimmedQuery;
+      // }
     } else {
-      localQueryToSendToGemini = trimmedQuery;
+      localQueryToSendToGemini = {
+        inlineData: {
+          data: query.image_info.data,
+          mimeType: query.image_info.mime_type,
+        },
+      };
     }
-  } else {
-    localQueryToSendToGemini = query;
+    localQuerysToSendToGemini.push(localQueryToSendToGemini);
+    // return localQueryToSendToGemini
   }
-  if (localQueryToSendToGemini === null) {
+
+  if (localQuerysToSendToGemini === null) {
     console.log(
       `Session ${sessionId} - Query processing resulted in null, not sending to Gemini.`,
     );
     return { queryToSend: null, shouldProceed: false };
   }
-  return { queryToSend: localQueryToSendToGemini, shouldProceed: true };
+  return { queryToSend: localQuerysToSendToGemini, shouldProceed: true };
 }
 
 // 处理Gemini流事件
@@ -505,7 +536,7 @@ function debugModelSelection(model: string, config: Config): void {
 
 // 提交查询
 async function submitQuery(
-  query: PartListUnion,
+  query: ApiServiceMessage[],
   sessionId: string,
   abortController: AbortController,
   config: Config,
@@ -606,7 +637,7 @@ function startHeartbeat(
 
 // 流式返回Gemini输出到客户端
 async function streamGeminiToClient(
-  userMessage: string,
+  userMessage: ApiServiceMessage[],
   sessionId: string,
   abortController: AbortController,
   res: Response,
@@ -712,6 +743,8 @@ async function streamGeminiToClient(
           }
           // Stream all event types in OpenAI-compatible format
           let delta: { [key: string]: unknown } = {};
+          let finish_reason: FinishReason | null = null;
+          let usage: OpenAIUsage | null = null;
 
           if (event.type === 'content') {
             delta = { content: event.value || '' };
@@ -746,32 +779,45 @@ async function streamGeminiToClient(
             event.value
           ) {
             delta = { error: formatError('核心方法调用出错', event.value) };
+          } else if (event.type === 'finished') {
+            finish_reason = event.value.reason || null;
+            if (event.value.reason !== FinishReason.FINISH_REASON_UNSPECIFIED) {
+              delta = {};
+              const usageMetadata = event.value.usageMetadata;
+              // 仅当接收到模型侧用量信息时才返回
+              if (usageMetadata) {
+                usage = {
+                  prompt_tokens: usageMetadata?.promptTokenCount || 0,
+                  completion_tokens: usageMetadata?.candidatesTokenCount || 0,
+                  total_tokens: usageMetadata?.totalTokenCount || 0,
+                  model_max_tokens: tokenLimit(model),
+                  prompt_tokens_details: {
+                    cached_tokens: usageMetadata?.cachedContentTokenCount || 0,
+                  },
+                };
+              }
+            }
           } else if (
             event.type !== 'user_cancelled' &&
             'value' in event &&
             event.value
           ) {
-            if (event.type === 'finished') {
-              if (
-                event.value.reason !== FinishReason.FINISH_REASON_UNSPECIFIED
-              ) {
-                delta = { [event.type]: event.value };
-              }
-            }
+            delta = { [event.type]: event.value };
           }
 
           const chunk = {
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             created: Math.floor(Date.now() / 1000),
-            model: model || DEFAULT_CONFIG.model, // 保持模型名称一致性
+            model,
             choices: [
               {
                 index: 0,
                 delta,
-                finish_reason: null,
+                finish_reason,
               },
             ],
+            usage,
           };
 
           // 发送数据并立即刷新
@@ -1100,8 +1146,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response): void => {
         chat = new GeminiChat(currentConfig, generationConfig);
         chatSessions.set(chatKey, chat);
       }
-      const userMessage = messages[messages.length - 1]?.content;
-      if (!userMessage) {
+      if (messages.length === 0) {
         console.error('响应:', formatError('未提供用户消息', '未提供用户消息'));
         return res
           .status(400)
@@ -1116,7 +1161,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response): void => {
         res.flushHeaders();
         try {
           await streamGeminiToClient(
-            userMessage,
+            messages,
             sessionId,
             abortController,
             res,
@@ -1156,7 +1201,7 @@ app.post('/v1/chat/completions', (req: Request, res: Response): void => {
         // 非流式（现有行为）
         try {
           const responseText = await submitQuery(
-            userMessage,
+            messages,
             sessionId,
             abortController,
             currentConfig,
