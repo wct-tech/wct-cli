@@ -723,4 +723,9 @@ export class GeminiClient {
 
     return null;
   }
+
+  async updateConfig(config: Config): Promise<void> {
+    this.config = config;
+    await this.setTools();
+  }
 }
