@@ -446,10 +446,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
           }
           // Handle tool call deltas
           if (choice?.delta?.tool_calls) {
-            console.log(
-              'RAW toolCalls delta: ',
-              JSON.stringify(choice.delta.tool_calls, null, 2),
-            );
+            // console.log(
+            //   'RAW toolCalls delta: ',
+            //   JSON.stringify(choice.delta.tool_calls, null, 2),
+            // );
             for (const toolCall of choice.delta.tool_calls) {
               const idx = toolCall.index;
               const isNewEntry = !toolCallMap.has(idx);
@@ -510,10 +510,10 @@ export class OpenAICompatibleContentGenerator implements ContentGenerator {
               }
 
               toolCallMap.set(idx, current);
-              console.log(
-                `Updated state for index ${idx}:`,
-                JSON.stringify(toolCallMap.get(idx), null, 2),
-              );
+              // console.log(
+              //   `Updated state for index ${idx}:`,
+              //   JSON.stringify(toolCallMap.get(idx), null, 2),
+              // );
             }
             console.log(
               'Full toolCallMap state after processing all deltas in this chunk:',
