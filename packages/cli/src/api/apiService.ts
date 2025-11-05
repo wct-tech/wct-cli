@@ -50,7 +50,7 @@ import cors from 'cors';
 // } from '@google/gemini-cli-core/src/utils/errors';
 // import { logUserPrompt } from '@google/gemini-cli-core/src/telemetry/loggers.js';
 // import { UserPromptEvent } from '@google/gemini-cli-core/src/telemetry/types.js';
-import { loadSettings } from '../config/settings.js';
+import { loadSettings, migrateDeprecatedSettings } from '../config/settings.js';
 import { fileURLToPath } from 'url';
 import { loadCliConfig, parseArguments } from '../config/config.js';
 import { ExtensionEnablementManager } from '../config/extensions/extensionEnablement.js';
@@ -85,11 +85,16 @@ app.use(
 const loadGeminiConfigCli = async (project_path: string) => {
   try {
     const settings = loadSettings(project_path);
+    migrateDeprecatedSettings(settings, project_path);
     const argv = await parseArguments(settings.merged);
+    const extensionEnablementManager = new ExtensionEnablementManager(
+      ExtensionStorage.getUserExtensionsDir(),
+      argv.extensions,
+    );
     const configCli = await loadCliConfig(
       settings.merged,
       [],
-      new ExtensionEnablementManager(ExtensionStorage.getUserExtensionsDir()),
+      extensionEnablementManager,
       'api-service',
       argv,
     );
@@ -111,6 +116,7 @@ const DEFAULT_CONFIG: ConfigParameters = {
   model: DEFAULT_GEMINI_MODEL, // 默认模型
   cwd: process.cwd(),
   approvalMode: ApprovalMode.YOLO,
+  excludeTools: [], // 覆盖任何工具排除设置
 };
 
 // 创建配置对象，支持自定义项目路径
@@ -1298,6 +1304,10 @@ const port = Number(process.env['PORT']) || 3000;
 app.listen(port, '0.0.0.0', () => {
   console.log(`OpenAI兼容API服务正在监听端口 ${port}`);
   console.log(
-    `工具注册表已初始化，共有 ${toolRegistryPromise.getAllTools().length} 个工具`,
+    `工具注册表已初始化，共有 ${toolRegistryPromise.getAllTools().length} 个工具:`,
+    `${toolRegistryPromise
+      .getAllTools()
+      ?.map((tool) => tool.name)
+      ?.join('，')}`,
   );
 });

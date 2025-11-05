@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -109,6 +109,7 @@
   },
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
+    "@wct-cli/wct-cli": "^0.0.34",
     "simple-git": "^3.28.0"
   },
   "optionalDependencies": {
