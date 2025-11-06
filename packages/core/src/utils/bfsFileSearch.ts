@@ -137,6 +137,7 @@ export async function bfsFileSearch(
             console.error('bfsFileSearch: error:', error);
             continue;
           }
+          continue;
         }
 
         if (isDirectory) {
