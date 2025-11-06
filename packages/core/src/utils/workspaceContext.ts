@@ -94,7 +94,8 @@ export class WorkspaceContext {
       throw new Error(`Path is not a directory: ${absolutePath}`);
     }
 
-    return fs.realpathSync(absolutePath);
+    // return fs.realpathSync(absolutePath); // #wct-cli do not resolve real path
+    return absolutePath;
   }
 
   /**
@@ -151,7 +152,8 @@ export class WorkspaceContext {
    */
   private fullyResolvedPath(pathToCheck: string): string {
     try {
-      return fs.realpathSync(pathToCheck);
+      return pathToCheck;
+      // return fs.realpathSync(pathToCheck); // #wct-cli comment resolve realpath
     } catch (e: unknown) {
       if (
         isNodeError(e) &&

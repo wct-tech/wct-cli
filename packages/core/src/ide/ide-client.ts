@@ -64,15 +64,16 @@ type ConnectionConfig = {
   stdio?: StdioConfig;
 };
 
-function getRealPath(path: string): string {
-  try {
-    return fs.realpathSync(path);
-  } catch (_e) {
-    // If realpathSync fails, it might be because the path doesn't exist.
-    // In that case, we can fall back to the original path.
-    return path;
-  }
-}
+// #wct-cli commented
+// function getRealPath(path: string): string {
+//   try {
+//     return fs.realpathSync(path);
+//   } catch (_e) {
+//     // If realpathSync fails, it might be because the path doesn't exist.
+//     // In that case, we can fall back to the original path.
+//     return path;
+//   }
+// }
 
 /**
  * Manages the connection to and interaction with the IDE server.
@@ -517,11 +518,14 @@ export class IdeClient {
     }
 
     const ideWorkspacePaths = ideWorkspacePath.split(path.delimiter);
-    const realCwd = getRealPath(cwd);
-    const isWithinWorkspace = ideWorkspacePaths.some((workspacePath) => {
-      const idePath = getRealPath(workspacePath);
-      return isSubpath(idePath, realCwd);
-    });
+    // const realCwd = getRealPath(cwd); // #wct-cli realpath resolve
+    // const isWithinWorkspace = ideWorkspacePaths.some((workspacePath) => {
+    //   const idePath = getRealPath(workspacePath);
+    //   return isSubpath(idePath, realCwd);
+    // });
+    const isWithinWorkspace = ideWorkspacePaths.some((workspacePath) =>
+      isSubpath(workspacePath, cwd),
+    );
 
     if (!isWithinWorkspace) {
       return {

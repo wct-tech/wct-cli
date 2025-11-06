@@ -236,7 +236,8 @@ class ThemeManager {
   private loadThemeFromFile(themePath: string): Theme | undefined {
     try {
       // realpathSync resolves the path and throws if it doesn't exist.
-      const canonicalPath = fs.realpathSync(path.resolve(themePath));
+      // const canonicalPath = fs.realpathSync(path.resolve(themePath));
+      const canonicalPath = path.resolve(themePath); // #wct-cli comment realpathSync
 
       // 1. Check cache using the canonical path.
       if (this.customThemes.has(canonicalPath)) {

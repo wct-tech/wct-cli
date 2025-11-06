@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'node:fs';
+// import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { homedir } from 'node:os';
 import yargs from 'yargs/yargs';
@@ -402,8 +402,11 @@ export async function loadHierarchicalGeminiMemory(
   fileFilteringOptions?: FileFilteringOptions,
 ): Promise<{ memoryContent: string; fileCount: number }> {
   // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
-  const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
-  const realHome = fs.realpathSync(path.resolve(homedir()));
+  // #wct-cli further change, do not resolve real path
+  const realCwd = path.resolve(currentWorkingDirectory);
+  const realHome = path.resolve(homedir());
+  // const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
+  // const realHome = fs.realpathSync(path.resolve(homedir()));
   const isHomeDirectory = realCwd === realHome;
 
   // If it is the home directory, pass an empty string to the core memory

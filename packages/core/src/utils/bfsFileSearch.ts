@@ -5,6 +5,7 @@
  */
 
 import * as fs from 'node:fs/promises';
+import { statSync } from 'node:fs';
 import * as path from 'node:path';
 import type { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import type { FileFilteringOptions } from '../config/constants.js';
@@ -101,11 +102,12 @@ export async function bfsFileSearch(
         const fullPath = path.join(currentDir, entry.name);
         const isDirectory = entry.isDirectory();
         const isMatchingFile = entry.isFile() && entry.name === fileName;
+        const isSymbol = entry.isSymbolicLink();
 
-        if (!isDirectory && !isMatchingFile) {
+        if (!isDirectory && !isMatchingFile && !isSymbol) {
           continue;
         }
-        if (isDirectory && ignoreDirsSet.has(entry.name)) {
+        if ((isDirectory || isSymbol) && ignoreDirsSet.has(entry.name)) {
           continue;
         }
 
@@ -117,6 +119,24 @@ export async function bfsFileSearch(
           })
         ) {
           continue;
+        }
+
+        /** #wct-cli handle symlink */
+        if (isSymbol) {
+          try {
+            const symbolStat = statSync(fullPath);
+            const symIsMatchingFile =
+              symbolStat.isFile() && entry.name === fileName;
+            const symIsDirectory = symbolStat.isDirectory();
+            if (symIsDirectory) {
+              queue.push(fullPath);
+            } else if (symIsMatchingFile) {
+              foundFiles.push(fullPath);
+            }
+          } catch (error) {
+            console.error('bfsFileSearch: error:', error);
+            continue;
+          }
         }
 
         if (isDirectory) {

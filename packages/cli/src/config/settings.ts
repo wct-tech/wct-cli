@@ -553,16 +553,19 @@ export function loadSettings(
   const resolvedWorkspaceDir = path.resolve(workspaceDir);
   const resolvedHomeDir = path.resolve(homedir());
 
-  let realWorkspaceDir = resolvedWorkspaceDir;
-  try {
-    // fs.realpathSync gets the "true" path, resolving any symlinks
-    realWorkspaceDir = fs.realpathSync(resolvedWorkspaceDir);
-  } catch (_e) {
-    // This is okay. The path might not exist yet, and that's a valid state.
-  }
+  const realWorkspaceDir = resolvedWorkspaceDir;
+  /** #wct-cli do not resolve symlinks, as we need to check if the file exists */
+  // let realWorkspaceDir = resolvedWorkspaceDir;
+  // try {
+  //   // fs.realpathSync gets the "true" path, resolving any symlinks
+  //   realWorkspaceDir = fs.realpathSync(resolvedWorkspaceDir);
+  // } catch (_e) {
+  //   // This is okay. The path might not exist yet, and that's a valid state.
+  // }
 
   // We expect homedir to always exist and be resolvable.
-  const realHomeDir = fs.realpathSync(resolvedHomeDir);
+  // const realHomeDir = fs.realpathSync(resolvedHomeDir);
+  const realHomeDir = resolvedHomeDir;
 
   const workspaceSettingsPath = new Storage(
     workspaceDir,
