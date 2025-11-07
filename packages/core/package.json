@@ -1,6 +1,6 @@
 {
   "name": "@wct-cli/wct-cli-core",
-  "version": "0.0.35",
+  "version": "0.0.36",
   "description": "Gemini CLI Core",
   "repository": {
     "type": "git",
