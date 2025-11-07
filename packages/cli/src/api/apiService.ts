@@ -97,6 +97,7 @@ const loadGeminiConfigCli = async (project_path: string) => {
       extensionEnablementManager,
       'api-service',
       argv,
+      project_path,
     );
     return configCli;
   } catch (error) {
@@ -1114,10 +1115,6 @@ app.post('/v1/chat/completions', (req: Request, res: Response): void => {
       );
       currentConfig.setModel(model);
       console.timeEnd('configTime');
-      if (project_path) {
-        console.log(`使用自定义项目路径: ${project_path}`);
-        await currentConfig.refreshAuth(AuthType.USE_IWHALECLOUD);
-      }
 
       // 验证模型配置
       console.log(`当前配置使用的模型: ${currentConfig.getModel()}`);
